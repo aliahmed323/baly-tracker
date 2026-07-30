@@ -932,7 +932,7 @@ async function openEnvDetails(envelopeId) {
             </div>
           </div>
           <div class="trip-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-            <div class="trip-time">${Formatter.fullDateAr(tx.date)}</div>
+            <div class="trip-time">${Formatter.fullDateAr(tx.date || Formatter.dateKey(tx.timestamp || Date.now()))}</div>
             <button class="small-btn" style="background:rgba(239,68,68,0.1);color:var(--danger);font-size:11px;" 
                     onclick="App.deleteEnvTransaction('${tx.id}', '${envelopeId}')">حذف</button>
           </div>
