@@ -261,7 +261,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v1.3.1 — متصل بقاعدة البيانات السحابية</div>
+              <div class="settings-subtitle">بلي v1.3.2 — متصل بقاعدة البيانات السحابية</div>
             </div>
           </div>
         </div>
@@ -322,11 +322,7 @@
       <div class="modal-title">تأكيد الرحلة</div>
       <div class="modal-amount" id="confirm-amount">0 <small>د.ع</small></div>
 
-      <!-- المستلم كاش من الزبون -->
-      <div class="edit-field" style="margin: 10px 16px 0;">
-        <div class="edit-label">المستلم كاش من الزبون (دينار):</div>
-        <input type="number" class="edit-input" id="confirm-cash" inputmode="numeric">
-      </div>
+
 
       <!-- تاريخ الرحلة (افتراضي: اليوم) -->
       <div class="trip-date-row">
@@ -335,7 +331,13 @@
                onchange="App.setTripDate(this.value)">
       </div>
 
-      <div class="modal-actions">
+      <div class="modal-actions" style="margin-top: 10px;">
+
+        <!-- المستلم كاش من الزبون (تم نقله للأسفل) -->
+        <div class="edit-field" style="margin: 0 0 12px 0; text-align: right;">
+          <div class="edit-label">المستلم كاش من الزبون (دينار):</div>
+          <input type="number" class="edit-input" id="confirm-cash" inputmode="numeric" onfocus="App.stopCountdown()">
+        </div>
 
         <button class="modal-btn modal-btn-primary" onclick="App.confirm()" id="btn-confirm-trip">
           <div class="countdown-wrap">

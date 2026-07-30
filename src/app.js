@@ -1106,6 +1106,7 @@ window.App = {
 
   // تأكيد رحلة
   confirm:    ()   => confirmTrip(),
+  stopCountdown: () => stopCountdown(),
   openExtra:  ()   => openExtraModal(),
   openBonus:  ()   => openBonusModal(),
   pickExtra:  (a)  => pickExtra(a),
