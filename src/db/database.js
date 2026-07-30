@@ -136,6 +136,10 @@ export const Database = {
     return toArray(snap);
   },
 
+  async deleteWalletTransaction(id) {
+    await remove(ref(db, `wallet_transactions/${id}`));
+  },
+
   // ── HOME EXPENSES ──────────────────────────────
   async addHomeExpense(expense) {
     const newRef = push(ref(db, 'home_expenses'));

@@ -32,9 +32,15 @@ export const Wallet = {
   // ── حركة الأموال ─────────────────────────────
 
   /**
-   * تحويل مبلغ من الرصيد الحر إلى صندوق، أو العكس (إذا كان المبلغ سالباً)
+   * تحويل مبلغ من الرصيد الحر إلى صندوق
    */
   async transferToEnvelope(envelopeId, amount) {
+    // التحقق من الرصيد الحر أولاً
+    const stats = await this.getStats();
+    if (amount > 0 && stats.unallocated < amount) {
+      throw new Error('الرصيد الحر لا يكفي للإيداع');
+    }
+
     const envelopes = await this.getEnvelopes();
     const env = envelopes.find(e => e.id === envelopeId);
     if (!env) throw new Error('الصندوق غير موجود');
@@ -85,6 +91,38 @@ export const Wallet = {
         month: Formatter.dateKey(Date.now()).substring(0, 7) // YYYY-MM
       });
     }
+  },
+
+  /** جلب الحركات (Transactions) الخاصة بصندوق معين */
+  async getTransactions(envelopeId) {
+    const txs = await Database.getAllWalletTransactions();
+    return txs
+      .filter(t => t.envelopeId === envelopeId)
+      .sort((a, b) => b.timestamp - a.timestamp); // الأحدث أولاً
+  },
+
+  /** حذف حركة من سجل الصندوق واسترجاع الرصيد */
+  async deleteTransaction(txId) {
+    const txs = await Database.getAllWalletTransactions();
+    const tx = txs.find(t => t.id === txId);
+    if (!tx) throw new Error('العملية غير موجودة');
+
+    const envs = await this.getEnvelopes();
+    const env = envs.find(e => e.id === tx.envelopeId);
+    
+    if (env) {
+      // عكس تأثير العملية على رصيد القاصة
+      if (tx.type === 'deposit_to_env') {
+        env.balance -= tx.amount;
+      } else if (tx.type === 'withdraw_from_env') {
+        env.balance += tx.amount;
+      } else if (tx.type === 'envelope_expense') {
+        env.balance += tx.amount;
+      }
+      await this.updateEnvelope(env);
+    }
+
+    await Database.deleteWalletTransaction(txId);
   },
 
   // ── الإحصائيات والأرصدة ────────────────────────

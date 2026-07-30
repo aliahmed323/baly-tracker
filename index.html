@@ -553,6 +553,25 @@
   </div>
 
 
+  <!-- ⑩ تفاصيل وسجل القاصة -->
+  <div id="modal-env-details" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" style="max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="env-details-title">سجل القاصة</div>
+      
+      <div class="today-hero" style="margin: 0 16px 16px; min-height: auto; padding: 16px;">
+        <div class="today-hero-label">رصيد القاصة الحالي</div>
+        <div class="today-hero-value" id="env-details-balance">0</div>
+        <div class="today-hero-currency">دينار عراقي</div>
+      </div>
+
+      <div class="trips-list" id="env-tx-list" style="flex: 1; overflow-y: auto; padding: 0 16px;">
+        <!-- تُملأ برمجياً -->
+      </div>
+    </div>
+  </div>
+
+
   <!-- ════════════════════════════════════════
        Toast الإشعار
        ════════════════════════════════════════ -->

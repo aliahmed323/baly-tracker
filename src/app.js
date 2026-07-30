@@ -852,10 +852,10 @@ async function renderWallet() {
 
     return `
     <div class="env-card fade-up">
-      <div class="env-card-top">
+      <div class="env-card-top" onclick="App.openEnvDetails('${env.id}')" style="cursor: pointer;">
         <div class="env-icon-wrap" style="background:${clr.bg}">${env.icon}</div>
         <div class="env-card-body">
-          <div class="env-name">${env.name}</div>
+          <div class="env-name">${env.name} <small style="color:var(--text-muted);font-weight:normal;font-size:11px;">(اضغط للتفاصيل)</small></div>
           <div class="env-balance-row">
             <span class="env-balance" style="color:${clr.color}">${Formatter.num(env.balance)}</span>
             <span class="env-currency">د.ع</span>
@@ -888,15 +888,80 @@ async function newEnvelope() {
   // إذا كان الاسم يحتوي على كلمة "منزل"، نُعلّمه ليظهر في تقارير المنزل الخاصة
   if (name.includes('منزل')) {
     const envs = await Wallet.getEnvelopes();
-    const last = envs[envs.length - 1];
-    last.isHome = true;
-    await Wallet.updateEnvelope(last);
+    const e = envs[envs.length - 1];
+    e.isHome = true;
+    await Wallet.updateEnvelope(e);
   }
-
-  renderWallet();
-  flashToast('✅ تم إنشاء الصندوق', '');
+  
+  if (S.screen === 'wallet') renderWallet();
 }
 
+// ── تفاصيل وسجل القاصة ─────────────────────────
+async function openEnvDetails(envelopeId) {
+  const envs = await Wallet.getEnvelopes();
+  const env = envs.find(e => e.id === envelopeId);
+  if (!env) return;
+
+  S.selectedEnv = envelopeId;
+  $('#env-details-title').textContent = `سجل ${env.name} ${env.icon}`;
+  $('#env-details-balance').textContent = Formatter.num(env.balance);
+
+  const txs = await Wallet.getTransactions(envelopeId);
+  const container = $('#env-tx-list');
+  
+  if (!txs.length) {
+    container.innerHTML = `
+      <div class="empty-state" style="margin-top:20px;">
+        <div class="empty-icon">📝</div>
+        <div class="empty-text">لا توجد حركات بعد</div>
+      </div>`;
+  } else {
+    container.innerHTML = txs.map(tx => {
+      const isDeposit = tx.type === 'deposit_to_env';
+      const color = isDeposit ? 'var(--success)' : 'var(--danger)';
+      const icon = isDeposit ? '📥 إيداع' : '💸 صرف';
+      const sign = isDeposit ? '+' : '-';
+      
+      return `
+        <div class="trip-card fade-up" style="border-right: 4px solid ${color}; padding-right: 12px;">
+          <div class="trip-info">
+            <div class="trip-amount" style="color:${color}">${sign}${Formatter.num(tx.amount)} <small>د.ع</small></div>
+            <div class="trip-badges">
+              <span class="badge" style="background:var(--card-alt);color:var(--text-muted)">${icon}</span>
+              ${tx.note ? `<span class="badge badge-note">📝 ${tx.note}</span>` : ''}
+            </div>
+          </div>
+          <div class="trip-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+            <div class="trip-time">${Formatter.fullDateAr(tx.date)}</div>
+            <button class="small-btn" style="background:rgba(239,68,68,0.1);color:var(--danger);font-size:11px;" 
+                    onclick="App.deleteEnvTransaction('${tx.id}', '${envelopeId}')">حذف</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  openModal('env-details');
+}
+
+async function deleteEnvTransaction(txId, envelopeId) {
+  if (!confirm('هل أنت متأكد من حذف هذه العملية؟ سيتم استرجاع المبالغ لتصحيح الأرصدة.')) return;
+  
+  try {
+    await Wallet.deleteTransaction(txId);
+    flashToast('✅ تم الحذف وتصحيح الرصيد', '');
+    
+    // تحديث النافذة المفتوحة
+    await openEnvDetails(envelopeId);
+    
+    // تحديث المحفظة في الخلفية
+    if (S.screen === 'wallet') renderWallet();
+    await refreshHomeStats();
+  } catch (e) {
+    alert(e.message || 'حدث خطأ أثناء الحذف');
+  }
+}
+
+// ── الإيداع في القاصة ──────────────────────────
 function openTransferEnv(id) {
   S.selectedEnv = id;
   $('#env-transfer-amount').value = '';
@@ -1135,6 +1200,8 @@ window.App = {
   confirmTransferEnv: () => confirmTransferEnv(),
   openExpenseEnv:     (id) => openExpenseEnv(id),
   confirmExpenseEnv:  () => confirmExpenseEnv(),
+  openEnvDetails:     (id) => openEnvDetails(id),
+  deleteEnvTransaction: (txId, envId) => deleteEnvTransaction(txId, envId),
 
   // Toast
   editLast:   ()   => { if (S.lastTripId) { hideToast(); openEditTrip(S.lastTripId); } },
