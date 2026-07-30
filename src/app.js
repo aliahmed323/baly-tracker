@@ -1041,6 +1041,36 @@ async function exportBackup() {
   }
 }
 
+function initBackButton() {
+  window.history.pushState({ active: true }, '');
+  window.addEventListener('popstate', () => {
+    const openModal = document.querySelector('.modal-overlay.open');
+    
+    // 1. إغلاق أي نافذة مفتوحة
+    if (openModal) {
+      closeAllModals();
+      window.history.pushState({ active: true }, '');
+      return;
+    }
+
+    // 2. الرجوع من تفاصيل اليوم إلى السجل
+    if (S.viewingDate) {
+      backHistory();
+      window.history.pushState({ active: true }, '');
+      return;
+    }
+
+    // 3. الرجوع من أي شاشة إلى الشاشة الرئيسية
+    if (S.screen !== 'home') {
+      showScreen('home');
+      window.history.pushState({ active: true }, '');
+      return;
+    }
+
+    // إذا كنا في الشاشة الرئيسية ولا توجد نوافذ مفتوحة، سيسمح التطبيق بالخروج بشكل طبيعي
+  });
+}
+
 // ══════════════════════════════════════════════════
 // تهيئة التطبيق
 // ══════════════════════════════════════════════════
@@ -1056,6 +1086,7 @@ async function init() {
 
   // بدء بالشاشة الرئيسية
   showScreen('home');
+  initBackButton();
 
   // تسجيل Service Worker
   if ('serviceWorker' in navigator) {
