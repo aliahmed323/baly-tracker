@@ -134,43 +134,14 @@ function pressPrice(amount) {
   if (dateInput) dateInput.value = Formatter.todayKey();
 
   openModal('confirm');
-  startCountdown();
 }
 
-function startCountdown() {
-  S.countdownVal = 5;
-  updateCountdownRing();
-
-  S.countdown = setInterval(() => {
-    S.countdownVal--;
-    updateCountdownRing();
-    if (S.countdownVal <= 0) {
-      stopCountdown();
-      commitTrip();
-    }
-  }, 1000);
-}
-
-function stopCountdown() {
-  if (S.countdown) {
-    clearInterval(S.countdown);
-    S.countdown = null;
-  }
-}
-
-function updateCountdownRing() {
-  const ring = $('.c-progress');
-  const num  = $('#countdown-num');
-  if (ring) {
-    const pct    = S.countdownVal / 5;
-    const offset = 66 - pct * 66;
-    ring.style.strokeDashoffset = offset;
-  }
-  if (num) num.textContent = S.countdownVal;
-}
+// لم نعد نستخدم العداد التلقائي
+function startCountdown() {}
+function stopCountdown() {}
+function updateCountdownRing() {}
 
 function confirmTrip() {
-  stopCountdown();
   commitTrip();
 }
 
@@ -319,7 +290,6 @@ async function confirmNumpad() {
       const dateInput = $('#confirm-date');
       if (dateInput) dateInput.value = S.customDate;
       openModal('confirm');
-      startCountdown();
       break;
   }
 }
