@@ -1,0 +1,134 @@
+/**
+ * wallet.js — إدارة المحفظة والميزانية ومصاريف المنزل
+ */
+
+import { Database } from '../db/database.js';
+import { Reports }  from './reports.js';
+import { Formatter } from '../utils/formatter.js';
+
+export const Wallet = {
+
+  // ── صناديق المحفظة (Envelopes) ─────────────────
+
+  async getEnvelopes() {
+    return Database.getAllEnvelopes();
+  },
+
+  async addEnvelope({ name, icon = '💰', target = 0 }) {
+    const id = 'env_' + Date.now();
+    const env = { id, name, icon, target, balance: 0, createdAt: Date.now() };
+    await Database.putEnvelope(env);
+    return env;
+  },
+
+  async updateEnvelope(env) {
+    return Database.putEnvelope(env);
+  },
+
+  async deleteEnvelope(id) {
+    return Database.deleteEnvelope(id);
+  },
+
+  // ── حركة الأموال ─────────────────────────────
+
+  /**
+   * تحويل مبلغ من الرصيد الحر إلى صندوق، أو العكس (إذا كان المبلغ سالباً)
+   */
+  async transferToEnvelope(envelopeId, amount) {
+    const envelopes = await this.getEnvelopes();
+    const env = envelopes.find(e => e.id === envelopeId);
+    if (!env) throw new Error('الصندوق غير موجود');
+
+    env.balance += amount;
+    await this.updateEnvelope(env);
+
+    // تسجيل الحركة
+    await Database.addWalletTransaction({
+      type: amount > 0 ? 'deposit_to_env' : 'withdraw_from_env',
+      envelopeId,
+      amount: Math.abs(amount),
+      timestamp: Date.now(),
+      date: Formatter.todayKey()
+    });
+  },
+
+  /**
+   * تسجيل مصروف من صندوق معين (مثلاً مصروف منزل)
+   */
+  async addExpenseFromEnvelope(envelopeId, amount, note = '') {
+    const envelopes = await this.getEnvelopes();
+    const env = envelopes.find(e => e.id === envelopeId);
+    if (!env) throw new Error('الصندوق غير موجود');
+
+    if (env.balance < amount) throw new Error('الرصيد في الصندوق لا يكفي');
+
+    env.balance -= amount;
+    await this.updateEnvelope(env);
+
+    // تسجيل كمصروف عام من المحفظة
+    await Database.addWalletTransaction({
+      type: 'envelope_expense',
+      envelopeId,
+      amount,
+      note,
+      timestamp: Date.now(),
+      date: Formatter.todayKey()
+    });
+
+    // إذا كان هذا صندوق المنزل، نسجله أيضاً في مصاريف المنزل للتفصيل
+    if (env.isHome) {
+      await Database.addHomeExpense({
+        amount,
+        note,
+        timestamp: Date.now(),
+        date: Formatter.todayKey(),
+        month: Formatter.dateKey(Date.now()).substring(0, 7) // YYYY-MM
+      });
+    }
+  },
+
+  // ── الإحصائيات والأرصدة ────────────────────────
+
+  async getStats() {
+    // 1. كل الكاش الذي أدخله السائق من التكسي (صافي بعد مصاريف التكسي وزين كاش)
+    const taxiStats = await Reports.getAllTimeStats();
+    const totalTaxiCash = taxiStats.cashInHand || 0;
+
+    // 2. قراءة كل الصناديق
+    const envelopes = await this.getEnvelopes();
+    const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
+
+    // 3. قراءة كل مصاريف المحفظة (فقط نوع envelope_expense هي التي تخرج المال فعلياً من جيب السائق)
+    const txs = await Database.getAllWalletTransactions();
+    const totalWalletExpenses = txs
+      .filter(t => t.type === 'envelope_expense')
+      .reduce((s, t) => s + t.amount, 0);
+
+    // 4. الرصيد الفعلي الموجود في جيب السائق الآن
+    const currentPhysicalCash = totalTaxiCash - totalWalletExpenses;
+
+    // 5. الرصيد الحر (غير الموزع على الصناديق)
+    const unallocated = currentPhysicalCash - totalInEnvelopes;
+
+    return {
+      totalTaxiCash,
+      currentPhysicalCash,
+      totalInEnvelopes,
+      unallocated,
+      envelopes
+    };
+  },
+
+  // ── إدارة مصاريف المنزل التفصيلية ──────────────
+
+  async getHomeExpenses(year, month) {
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const list = await Database.getHomeExpensesByMonth(monthKey);
+    return list.sort((a, b) => b.timestamp - a.timestamp); // الأحدث أولاً
+  },
+
+  async deleteHomeExpense(id) {
+    // لا نعيد المبلغ للصندوق تلقائياً هنا لتجنب التعقيد، يمكن للمستخدم إضافة مبلغ يدوياً للصندوق
+    return Database.deleteHomeExpense(id);
+  }
+};

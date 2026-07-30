@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- PWA Meta -->
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="بلي">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- SEO -->
+  <title>بلي — تتبع أرباح السائق</title>
+  <meta name="description" content="تطبيق احترافي لتتبع أرباح سائق التكسي — بلي وأولي — العراق">
+
+  <!-- Icons -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+  <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="./assets/styles/main.css">
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ════════════════════════════════════════
+       الشاشات الرئيسية
+       ════════════════════════════════════════ -->
+
+  <!-- ① الشاشة الرئيسية — أزرار الأسعار -->
+  <div id="screen-home" class="screen">
+
+    <div class="home-header">
+      <div class="home-logo">
+        <span class="home-logo-icon">🚖</span>
+        بلي
+      </div>
+      <div id="home-date" class="home-date"></div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="home-quick-stats">
+      <div class="quick-stat">
+        <div class="quick-stat-value" id="qs-trips">0</div>
+        <div class="quick-stat-label">رحلة اليوم</div>
+      </div>
+      <div class="quick-stat-divider"></div>
+      <div class="quick-stat">
+        <div class="quick-stat-value" id="qs-profit">0</div>
+        <div class="quick-stat-label">معك الآن (د.ع)</div>
+      </div>
+    </div>
+
+    <!-- شبكة الأسعار -->
+    <div class="price-grid-container">
+      <div class="price-grid" id="price-grid">
+        <!-- تُملأ برمجياً -->
+      </div>
+    </div>
+
+    <!-- أزرار الإجراءات -->
+    <div class="home-actions">
+      <button class="action-btn" onclick="App.openExpense()" id="btn-expense">
+        <span class="action-icon">💸</span>
+        <span>مصروف</span>
+      </button>
+      <button class="action-btn" onclick="App.openFuel()" id="btn-fuel">
+        <span class="action-icon">⛽</span>
+        <span>وقود تلقائي</span>
+      </button>
+      <button class="action-btn" onclick="App.openZain()" id="btn-zaincash">
+        <span class="action-icon">💳</span>
+        <span>زين كاش</span>
+      </button>
+      <button class="action-btn" onclick="App.goto('today')" id="btn-stats">
+        <span class="action-icon">📊</span>
+        <span>إحصائياتي</span>
+      </button>
+    </div>
+
+  </div><!-- /screen-home -->
+
+
+  <!-- ② شاشة اليوم -->
+  <div id="screen-today" class="screen">
+
+    <div class="screen-header">
+      <h1>إحصائيات اليوم</h1>
+    </div>
+
+    <div class="screen-content">
+
+      <!-- البطل الرئيسي -->
+      <div class="today-hero">
+        <div class="today-hero-label">💰 المبلغ الموجود معك الآن</div>
+        <div class="today-hero-value" id="today-cash">0</div>
+        <div class="today-hero-currency">دينار عراقي</div>
+      </div>
+
+      <!-- شبكة الإحصائيات -->
+      <div class="today-stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">عدد الرحلات</div>
+          <div class="stat-value primary" id="td-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">إجمالي الأجور</div>
+          <div class="stat-value" id="td-fares">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">الزيادات والمكافآت</div>
+          <div class="stat-value success" id="td-extras">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">نسبة بلي (15%)</div>
+          <div class="stat-value danger" id="td-fee">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">المصاريف</div>
+          <div class="stat-value danger" id="td-expenses">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">تحويلات زين كاش</div>
+          <div class="stat-value info" id="td-transfers">0</div>
+        </div>
+        <div class="stat-card full-width">
+          <div class="stat-label">✨ صافي الأرباح</div>
+          <div class="stat-value success big" id="td-net">0</div>
+        </div>
+      </div>
+
+      <!-- رحلات اليوم -->
+      <div class="section-header">
+        <div class="section-title">رحلات اليوم</div>
+      </div>
+      <div class="trips-list" id="today-trips-list"></div>
+
+      <!-- مصاريف اليوم -->
+      <div class="section-header">
+        <div class="section-title">المصاريف</div>
+      </div>
+      <div class="trips-list" id="today-exp-list"></div>
+
+      <!-- تحويلات اليوم -->
+      <div class="section-header">
+        <div class="section-title">تحويلات زين كاش</div>
+      </div>
+      <div class="trips-list" id="today-trans-list"></div>
+
+      <div class="spacer"></div>
+    </div>
+
+  </div><!-- /screen-today -->
+
+
+  <!-- ③ شاشة السجل -->
+  <div id="screen-history" class="screen">
+
+    <div class="screen-header">
+      <h1>السجل</h1>
+    </div>
+
+    <div class="screen-content">
+      <!-- يُملأ برمجياً -->
+      <div class="history-tabs">
+        <button class="history-tab active" onclick="App.switchTab('days')">الأيام</button>
+        <button class="history-tab"        onclick="App.switchTab('months')">الأشهر</button>
+      </div>
+      <div id="history-days-list"   class="history-list"></div>
+      <div id="history-months-list" class="history-list" style="display:none"></div>
+      <div class="spacer"></div>
+    </div>
+
+  </div><!-- /screen-history -->
+
+
+  <!-- ④ شاشة المحفظة (Wallet) -->
+  <div id="screen-wallet" class="screen">
+    <div class="screen-header">
+      <h1>المحفظة</h1>
+    </div>
+    <div class="screen-content">
+      
+      <!-- البطل الرئيسي للمحفظة -->
+      <div class="today-hero">
+        <div class="today-hero-label">🔓 الرصيد الحر (غير موزع)</div>
+        <div class="today-hero-value success" id="wallet-unallocated">0</div>
+        <div class="today-hero-currency">دينار عراقي</div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">صناديق الأموال</div>
+        <button class="small-btn" onclick="App.newEnvelope()">+ صندوق</button>
+      </div>
+      
+      <div class="wallet-envelopes" id="wallet-envelopes-list">
+        <!-- تُملأ برمجياً -->
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">إجمالي النقد في جيبك</div>
+        <div id="wallet-total-cash" style="font-weight:bold; color:var(--text-main);">0</div>
+      </div>
+
+      <div class="spacer"></div>
+    </div>
+  </div><!-- /screen-wallet -->
+
+
+  <!-- ⑤ شاشة الإعدادات -->
+  <div id="screen-settings" class="screen">
+
+    <div class="screen-header">
+      <h1>الإعدادات</h1>
+    </div>
+
+    <div class="screen-content">
+      <div class="settings-list">
+
+        <div class="settings-card">
+          <div class="settings-item" onclick="App.changePercent()" id="settings-percent-row">
+            <div class="settings-icon">📱</div>
+            <div class="settings-info">
+              <div class="settings-title">نسبة تطبيق بلي</div>
+              <div class="settings-subtitle">النسبة المخصومة من إجمالي الأجور</div>
+            </div>
+            <div class="settings-value" id="settings-pct">15%</div>
+            <div class="settings-arrow">‹</div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-item" onclick="App.exportBackup()" id="settings-export-row">
+            <div class="settings-icon">📦</div>
+            <div class="settings-info">
+              <div class="settings-title">تصدير البيانات</div>
+              <div class="settings-subtitle">نسخة احتياطية بصيغة JSON</div>
+            </div>
+            <div class="settings-arrow">📤</div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-item" style="cursor:default">
+            <div class="settings-icon">ℹ️</div>
+            <div class="settings-info">
+              <div class="settings-title">إصدار التطبيق</div>
+              <div class="settings-subtitle">بلي v1.0.0 — جميع البيانات محفوظة محلياً</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="spacer"></div>
+    </div>
+
+  </div><!-- /screen-settings -->
+
+
+  <!-- ════════════════════════════════════════
+       شريط التنقل السفلي
+       ════════════════════════════════════════ -->
+  <nav class="bottom-nav" role="navigation" aria-label="التنقل الرئيسي">
+
+    <button class="nav-item active" data-screen="home" onclick="App.goto('home')" id="nav-home">
+      <span class="nav-dot"></span>
+      <span class="nav-icon">🏠</span>
+      <span>رئيسية</span>
+    </button>
+
+    <button class="nav-item" data-screen="today" onclick="App.goto('today')" id="nav-today">
+      <span class="nav-dot"></span>
+      <span class="nav-icon">📊</span>
+      <span>اليوم</span>
+    </button>
+
+    <button class="nav-item" data-screen="history" onclick="App.goto('history')" id="nav-history">
+      <span class="nav-dot"></span>
+      <span class="nav-icon">📅</span>
+      <span>السجل</span>
+    </button>
+
+    <button class="nav-item" data-screen="wallet" onclick="App.goto('wallet')" id="nav-wallet">
+      <span class="nav-dot"></span>
+      <span class="nav-icon">💼</span>
+      <span>المحفظة</span>
+    </button>
+
+    <button class="nav-item" data-screen="settings" onclick="App.goto('settings')" id="nav-settings">
+      <span class="nav-dot"></span>
+      <span class="nav-icon">⚙️</span>
+      <span>إعدادات</span>
+    </button>
+
+  </nav>
+
+
+  <!-- ════════════════════════════════════════
+       النوافذ المنبثقة (Modals)
+       ════════════════════════════════════════ -->
+
+  <!-- ① تأكيد الرحلة -->
+  <div id="modal-confirm" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="تأكيد الرحلة">
+      <div class="modal-handle"></div>
+      <div class="modal-title">تأكيد الرحلة</div>
+      <div class="modal-amount" id="confirm-amount">0 <small>د.ع</small></div>
+      <div class="modal-actions">
+
+        <button class="modal-btn modal-btn-primary" onclick="App.confirm()" id="btn-confirm-trip">
+          <div class="countdown-wrap">
+            <svg class="countdown-svg" viewBox="0 0 24 24">
+              <circle class="c-track"    cx="12" cy="12" r="10"/>
+              <circle class="c-progress" cx="12" cy="12" r="10"/>
+            </svg>
+            <span id="countdown-num">5</span>
+          </div>
+          ✓ &nbsp;نفس المبلغ
+        </button>
+
+        <button class="modal-btn modal-btn-secondary" onclick="App.openExtra()" id="btn-open-extra">
+          ➕ &nbsp;زيادة من الزبون
+        </button>
+
+        <button class="modal-btn modal-btn-secondary" onclick="App.openBonus()" id="btn-open-bonus">
+          🎁 &nbsp;مكافأة
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ② الزيادة -->
+  <div id="modal-extra" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="زيادة من الزبون">
+      <div class="modal-handle"></div>
+      <div class="modal-title">زيادة من الزبون ➕</div>
+      <div class="amount-grid">
+        <button class="amount-opt" onclick="App.pickExtra(250)"   id="extra-250">250</button>
+        <button class="amount-opt" onclick="App.pickExtra(500)"   id="extra-500">500</button>
+        <button class="amount-opt" onclick="App.pickExtra(750)"   id="extra-750">750</button>
+        <button class="amount-opt" onclick="App.pickExtra(1000)"  id="extra-1000">1,000</button>
+        <button class="amount-opt" onclick="App.pickExtra(1500)"  id="extra-1500">1,500</button>
+        <button class="amount-opt" onclick="App.pickExtra(2000)"  id="extra-2000">2,000</button>
+      </div>
+      <button class="modal-btn modal-btn-secondary" onclick="App.openCustomExtra()" id="btn-custom-extra">
+        ✏️ &nbsp;مبلغ آخر
+      </button>
+    </div>
+  </div>
+
+  <!-- ③ المكافأة -->
+  <div id="modal-bonus" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="مكافأة">
+      <div class="modal-handle"></div>
+      <div class="modal-title">مكافأة 🎁</div>
+      <div class="amount-grid">
+        <button class="amount-opt" onclick="App.pickBonus(250)"   id="bonus-250">250</button>
+        <button class="amount-opt" onclick="App.pickBonus(500)"   id="bonus-500">500</button>
+        <button class="amount-opt" onclick="App.pickBonus(750)"   id="bonus-750">750</button>
+        <button class="amount-opt" onclick="App.pickBonus(1000)"  id="bonus-1000">1,000</button>
+        <button class="amount-opt" onclick="App.pickBonus(1500)"  id="bonus-1500">1,500</button>
+        <button class="amount-opt" onclick="App.pickBonus(2000)"  id="bonus-2000">2,000</button>
+      </div>
+      <button class="modal-btn modal-btn-secondary" onclick="App.openCustomBonus()" id="btn-custom-bonus">
+        ✏️ &nbsp;مبلغ آخر
+      </button>
+    </div>
+  </div>
+
+  <!-- ④ المصاريف — اختيار الفئة -->
+  <div id="modal-expense" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="تسجيل مصروف">
+      <div class="modal-handle"></div>
+      <div class="modal-title">نوع المصروف 💸</div>
+      <div class="expense-categories">
+        <button class="expense-cat-btn" onclick="App.pickCat('fuel')" id="cat-fuel">
+          <span class="cat-icon">⛽</span><span>وقود</span>
+        </button>
+        <button class="expense-cat-btn" onclick="App.pickCat('food')" id="cat-food">
+          <span class="cat-icon">🍔</span><span>أكل</span>
+        </button>
+        <button class="expense-cat-btn" onclick="App.pickCat('wash')" id="cat-wash">
+          <span class="cat-icon">🚿</span><span>غسيل</span>
+        </button>
+        <button class="expense-cat-btn" onclick="App.pickCat('maintenance')" id="cat-maint">
+          <span class="cat-icon">🔧</span><span>صيانة</span>
+        </button>
+        <button class="expense-cat-btn" onclick="App.pickCat('other')" id="cat-other"
+                style="grid-column: 1 / -1">
+          <span class="cat-icon">📦</span><span>أخرى</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ لوحة الأرقام العامة -->
+  <div id="modal-numpad" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="إدخال مبلغ">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="numpad-title">أدخل المبلغ</div>
+
+      <div class="numpad-display-wrap">
+        <div class="numpad-display empty" id="numpad-display">0</div>
+        <div class="numpad-currency">دينار عراقي</div>
+      </div>
+
+      <div class="numpad">
+        <button class="numpad-btn" onclick="App.numpad('7')" id="np-7">7</button>
+        <button class="numpad-btn" onclick="App.numpad('8')" id="np-8">8</button>
+        <button class="numpad-btn" onclick="App.numpad('9')" id="np-9">9</button>
+        <button class="numpad-btn" onclick="App.numpad('4')" id="np-4">4</button>
+        <button class="numpad-btn" onclick="App.numpad('5')" id="np-5">5</button>
+        <button class="numpad-btn" onclick="App.numpad('6')" id="np-6">6</button>
+        <button class="numpad-btn" onclick="App.numpad('1')" id="np-1">1</button>
+        <button class="numpad-btn" onclick="App.numpad('2')" id="np-2">2</button>
+        <button class="numpad-btn" onclick="App.numpad('3')" id="np-3">3</button>
+        <button class="numpad-btn" onclick="App.numpad('0')" id="np-0">0</button>
+        <button class="numpad-btn" onclick="App.numpad('000')" id="np-000">000</button>
+        <button class="numpad-btn del-btn" onclick="App.numpad('⌫')" id="np-del">⌫</button>
+        <button class="numpad-btn ok-btn"  onclick="App.numpad('✓')" id="np-ok">✓ &nbsp;تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑦ إدخال وقود تلقائي (مسافة اليوم) -->
+  <div id="modal-fuel" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="وقود تلقائي">
+      <div class="modal-handle"></div>
+      <div class="modal-title">تسجيل وقود (تلقائي) ⛽</div>
+
+      <div class="edit-field">
+        <div class="edit-label">المسافة المقطوعة اليوم (كم)</div>
+        <input type="number" class="edit-input" id="fuel-km" inputmode="numeric" placeholder="مثال: 60">
+      </div>
+      <div class="edit-field">
+        <div class="edit-label">معدل الاستهلاك (كم للتر الواحد)</div>
+        <input type="number" class="edit-input" id="fuel-rate" inputmode="numeric" placeholder="مثال: 10">
+      </div>
+      <div class="edit-field">
+        <div class="edit-label">ملاحظة (اختياري)</div>
+        <input type="text" class="edit-input" id="fuel-note" placeholder="مثال: تفويلة من محطة اليرموك">
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveAutoFuel()">
+          حساب وإضافة كمصروف
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑧ تحويل لصندوق (Envelope Transfer) -->
+  <div id="modal-transfer-env" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="env-transfer-title">إيداع في الصندوق 📥</div>
+
+      <div class="edit-field">
+        <div class="edit-label">المبلغ (دينار)</div>
+        <input type="number" class="edit-input" id="env-transfer-amount" inputmode="numeric" placeholder="0">
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.confirmTransferEnv()">
+          تأكيد
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑨ مصروف صندوق (Envelope Expense) -->
+  <div id="modal-expense-env" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">تسجيل مصروف من الصندوق 💸</div>
+
+      <div class="edit-field">
+        <div class="edit-label">المبلغ (دينار)</div>
+        <input type="number" class="edit-input" id="env-exp-amount" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="edit-field">
+        <div class="edit-label">تفاصيل المصروف</div>
+        <input type="text" class="edit-input" id="env-exp-note" placeholder="مثال: شراء ملابس أطفال">
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-danger" onclick="App.confirmExpenseEnv()">
+          خصم المبلغ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ تعديل الرحلة -->
+  <div id="modal-edit" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" aria-label="تعديل الرحلة">
+      <div class="modal-handle"></div>
+      <div class="modal-title">تعديل الرحلة ✏️</div>
+
+      <div class="edit-field">
+        <div class="edit-label">الأجرة</div>
+        <input type="number" class="edit-input" id="ea-amount" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="edit-field">
+        <div class="edit-label">زيادة من الزبون</div>
+        <input type="number" class="edit-input" id="ea-extra"  inputmode="numeric" placeholder="0">
+      </div>
+      <div class="edit-field">
+        <div class="edit-label">مكافأة</div>
+        <input type="number" class="edit-input" id="ea-bonus"  inputmode="numeric" placeholder="0">
+      </div>
+      <div class="edit-field">
+        <div class="edit-label">ملاحظة</div>
+        <textarea class="edit-input textarea" id="ea-note" placeholder="اكتب ملاحظة..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveEdit()" id="btn-save-edit">
+          💾 &nbsp;حفظ التعديلات
+        </button>
+        <button class="modal-btn modal-btn-danger" onclick="App.deleteTrip()" id="btn-delete-trip">
+          🗑️ &nbsp;حذف الرحلة
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════
+       Toast الإشعار
+       ════════════════════════════════════════ -->
+  <div id="toast" class="toast" role="alert" aria-live="polite">
+    <span class="toast-icon">✅</span>
+    <div class="toast-body">
+      <div class="toast-text"  id="toast-text">تم حفظ الرحلة</div>
+      <div class="toast-amount" id="toast-amount"></div>
+    </div>
+    <div class="toast-actions">
+      <button class="toast-btn"         onclick="App.editLast()" id="toast-edit">تعديل</button>
+      <button class="toast-btn primary" onclick="App.undoLast()" id="toast-undo">تراجع</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- JavaScript — ES Modules -->
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>
