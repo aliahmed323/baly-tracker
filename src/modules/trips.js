@@ -7,11 +7,17 @@ import { Formatter } from '../utils/formatter.js';
 
 export const Trips = {
 
-  /** إضافة رحلة جديدة */
-  async add({ amount, extra = 0, bonus = 0, note = '' }) {
+  /** إضافة رحلة جديدة لليوم الحالي */
+  async add({ amount, extra = 0, bonus = 0, note = '', paymentType = 'cash' }) {
     const now     = Date.now();
     const dateKey = Formatter.dateKey(now);
-    return Database.addTrip({ amount, extra, bonus, note, date: dateKey, timestamp: now });
+    return Database.addTrip({ amount, extra, bonus, note, paymentType, date: dateKey, timestamp: now });
+  },
+
+  /** إضافة رحلة بتاريخ محدد (اليوم أو أي يوم ماض) */
+  async addOnDate({ amount, extra = 0, bonus = 0, note = '', paymentType = 'cash' }, dateKey) {
+    const now = Date.now();
+    return Database.addTrip({ amount, extra, bonus, note, paymentType, date: dateKey, timestamp: now });
   },
 
   /** جلب رحلة بالمعرّف */

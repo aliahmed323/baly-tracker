@@ -29,6 +29,8 @@ const S = {
   numpadMode:    null,      // وضع الـ Numpad
   expenseCat:    null,      // فئة المصروف المختارة
   selectedEnv:   null,      // الصندوق المحدد حالياً للتحويل أو الصرف
+  paymentType:   'cash',    // نوع دفع الرحلة: 'cash' أو 'app'
+  customDate:    null,      // تاريخ مخصص للرحلة (افتراضي: اليوم)
 };
 
 // ══════════════════════════════════════════════════
@@ -116,11 +118,21 @@ async function refreshHomeStats() {
 // نافذة تأكيد الرحلة
 // ══════════════════════════════════════════════════
 function pressPrice(amount) {
-  S.pendingTrip = { amount, extra: 0, bonus: 0 };
+  S.pendingTrip  = { amount, extra: 0, bonus: 0 };
+  S.paymentType  = 'cash';
+  S.customDate   = null;
 
   // عرض المبلغ في النافذة
   const el = $('#confirm-amount');
-  if (el) el.textContent = Formatter.num(amount);
+  if (el) el.innerHTML = Formatter.num(amount) + ' <small>د.ع</small>';
+
+  // ضبط زري نوع الدفع
+  $('#pay-cash')?.classList.add('active');
+  $('#pay-app')?.classList.remove('active');
+
+  // ضبط حقل التاريخ لليوم الحالي
+  const dateInput = $('#confirm-date');
+  if (dateInput) dateInput.value = Formatter.todayKey();
 
   openModal('confirm');
   startCountdown();
@@ -168,15 +180,32 @@ async function commitTrip() {
   if (!S.pendingTrip) return;
 
   const { amount, extra, bonus } = S.pendingTrip;
-  S.pendingTrip = null;
+  const paymentType = S.paymentType || 'cash';
+  const tripDate    = S.customDate  || Formatter.todayKey();
 
-  const trip = await Trips.add({ amount, extra, bonus });
+  S.pendingTrip = null;
+  S.customDate  = null;
+  S.paymentType = 'cash';
+
+  const trip = await Trips.addOnDate({ amount, extra, bonus, paymentType }, tripDate);
   S.lastTripId = trip.id;
 
   await refreshHomeStats();
   if (S.screen === 'today') renderToday();
 
-  showTripToast(amount + extra + bonus);
+  showTripToast(amount + extra + bonus, paymentType);
+}
+
+// تغيير نوع الدفع (كاش / رصيد بلي)
+function setPayType(type) {
+  S.paymentType = type;
+  $('#pay-cash')?.classList.toggle('active', type === 'cash');
+  $('#pay-app')?.classList.toggle('active',  type === 'app');
+}
+
+// تغيير تاريخ الرحلة
+function setTripDate(dateStr) {
+  S.customDate = dateStr || Formatter.todayKey();
 }
 
 // ══════════════════════════════════════════════════
@@ -320,7 +349,7 @@ async function saveTransfer(amount) {
 // ══════════════════════════════════════════════════
 // Toast الإشعار
 // ══════════════════════════════════════════════════
-function showTripToast(total) {
+function showTripToast(total, paymentType = 'cash') {
   const toast    = $('#toast');
   const amountEl = $('#toast-amount');
   const editBtn  = $('#toast-edit');
@@ -331,7 +360,9 @@ function showTripToast(total) {
   if (undoBtn)  undoBtn.textContent   = 'تراجع';
 
   const textEl = $('#toast-text');
-  if (textEl) textEl.textContent = 'تم حفظ الرحلة';
+  if (textEl) textEl.textContent = paymentType === 'app'
+    ? '📱 رحلة رصيد بلي — تم الحفظ'
+    : '✅ تم حفظ الرحلة';
 
   if (toast) toast.classList.add('show');
 
@@ -479,15 +510,17 @@ function renderTripCards(trips, containerSel) {
   c.innerHTML = trips.map((t, i) => {
     const total  = t.amount + (t.extra || 0) + (t.bonus || 0);
     const hasTip = (t.extra || 0) + (t.bonus || 0) > 0;
+    const isApp  = t.paymentType === 'app';
     const badges = [
-      t.extra  ? `<span class="badge badge-extra">+${Formatter.num(t.extra)}</span>`  : '',
-      t.bonus  ? `<span class="badge badge-bonus">🎁 ${Formatter.num(t.bonus)}</span>` : '',
-      t.note   ? `<span class="badge badge-note">📝 ${t.note}</span>`                  : '',
+      isApp                ? `<span class="badge badge-app-pay">📱 رصيد بلي</span>`            : '',
+      t.extra              ? `<span class="badge badge-extra">+${Formatter.num(t.extra)}</span>` : '',
+      t.bonus              ? `<span class="badge badge-bonus">🎁 ${Formatter.num(t.bonus)}</span>` : '',
+      t.note               ? `<span class="badge badge-note">📝 ${t.note}</span>`                : '',
     ].filter(Boolean).join('');
 
     return `
       <div class="trip-card fade-up" onclick="App.editTrip(${t.id})">
-        <div class="trip-num">${i + 1}</div>
+        <div class="trip-num" style="${isApp ? 'background:var(--info-bg);color:var(--info)' : ''}">${i + 1}</div>
         <div class="trip-info">
           <div class="trip-amount">${Formatter.num(t.amount)} <small>د.ع</small></div>
           ${badges ? `<div class="trip-badges">${badges}</div>` : ''}
@@ -1032,6 +1065,8 @@ window.App = {
   pickBonus:  (a)  => pickBonus(a),
   openCustomExtra: () => { closeModal('extra'); openNumpad('extra'); },
   openCustomBonus: () => { closeModal('bonus'); openNumpad('bonus'); },
+  setPayType: (t)  => setPayType(t),
+  setTripDate:(d)  => setTripDate(d),
 
   // نامباد
   numpad:     (k)  => numpadPress(k),

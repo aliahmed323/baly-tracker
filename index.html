@@ -321,6 +321,26 @@
       <div class="modal-handle"></div>
       <div class="modal-title">تأكيد الرحلة</div>
       <div class="modal-amount" id="confirm-amount">0 <small>د.ع</small></div>
+
+      <!-- نوع الدفع: كاش أم رصيد التطبيق -->
+      <div class="pay-type-row">
+        <button class="pay-type-btn active" id="pay-cash"
+                onclick="App.setPayType('cash')">
+          💵 كاش
+        </button>
+        <button class="pay-type-btn" id="pay-app"
+                onclick="App.setPayType('app')">
+          📱 رصيد بلي
+        </button>
+      </div>
+
+      <!-- تاريخ الرحلة (افتراضي: اليوم) -->
+      <div class="trip-date-row">
+        <span class="trip-date-label">📅 تاريخ الرحلة:</span>
+        <input type="date" id="confirm-date" class="trip-date-input"
+               onchange="App.setTripDate(this.value)">
+      </div>
+
       <div class="modal-actions">
 
         <button class="modal-btn modal-btn-primary" onclick="App.confirm()" id="btn-confirm-trip">
@@ -345,6 +365,7 @@
       </div>
     </div>
   </div>
+
 
   <!-- ② الزيادة -->
   <div id="modal-extra" class="modal-overlay" onclick="if(event.target===this)App.close()">
