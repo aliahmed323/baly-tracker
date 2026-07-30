@@ -322,16 +322,10 @@
       <div class="modal-title">تأكيد الرحلة</div>
       <div class="modal-amount" id="confirm-amount">0 <small>د.ع</small></div>
 
-      <!-- نوع الدفع: كاش أم رصيد التطبيق -->
-      <div class="pay-type-row">
-        <button class="pay-type-btn active" id="pay-cash"
-                onclick="App.setPayType('cash')">
-          💵 كاش
-        </button>
-        <button class="pay-type-btn" id="pay-app"
-                onclick="App.setPayType('app')">
-          📱 رصيد بلي
-        </button>
+      <!-- المستلم كاش من الزبون -->
+      <div class="edit-field" style="margin: 10px 16px 0;">
+        <div class="edit-label">المستلم كاش من الزبون (دينار):</div>
+        <input type="number" class="edit-input" id="confirm-cash" inputmode="numeric">
       </div>
 
       <!-- تاريخ الرحلة (افتراضي: اليوم) -->

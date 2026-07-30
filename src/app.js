@@ -119,16 +119,15 @@ async function refreshHomeStats() {
 // ══════════════════════════════════════════════════
 function pressPrice(amount) {
   S.pendingTrip  = { amount, extra: 0, bonus: 0 };
-  S.paymentType  = 'cash';
   S.customDate   = null;
 
   // عرض المبلغ في النافذة
   const el = $('#confirm-amount');
   if (el) el.innerHTML = Formatter.num(amount) + ' <small>د.ع</small>';
 
-  // ضبط زري نوع الدفع
-  $('#pay-cash')?.classList.add('active');
-  $('#pay-app')?.classList.remove('active');
+  // تعيين الكاش الافتراضي لنفس المبلغ
+  const cashInput = $('#confirm-cash');
+  if (cashInput) cashInput.value = amount;
 
   // ضبط حقل التاريخ لليوم الحالي
   const dateInput = $('#confirm-date');
@@ -180,14 +179,16 @@ async function commitTrip() {
   if (!S.pendingTrip) return;
 
   const { amount, extra, bonus } = S.pendingTrip;
-  const paymentType = S.paymentType || 'cash';
-  const tripDate    = S.customDate  || Formatter.todayKey();
+  
+  const cashInput = $('#confirm-cash');
+  const cashReceived = cashInput && cashInput.value !== '' ? Number(cashInput.value) : amount;
+  
+  const tripDate = S.customDate || Formatter.todayKey();
 
   S.pendingTrip = null;
   S.customDate  = null;
-  S.paymentType = 'cash';
 
-  const trip = await Trips.addOnDate({ amount, extra, bonus, paymentType }, tripDate);
+  const trip = await Trips.addOnDate({ amount, cashReceived, extra, bonus }, tripDate);
   S.lastTripId = trip.id;
 
   await refreshHomeStats();
@@ -311,8 +312,10 @@ async function confirmNumpad() {
       S.pendingTrip.amount = amount;
       const el = $('#confirm-amount');
       if (el) el.innerHTML = Formatter.num(amount) + ' <small>د.ع</small>';
-      $('#pay-cash')?.classList.add('active');
-      $('#pay-app')?.classList.remove('active');
+      
+      const cashInput = $('#confirm-cash');
+      if (cashInput) cashInput.value = amount;
+      
       const dateInput = $('#confirm-date');
       if (dateInput) dateInput.value = S.customDate;
       openModal('confirm');
@@ -521,17 +524,20 @@ function renderTripCards(trips, containerSel) {
   c.innerHTML = trips.map((t, i) => {
     const total  = t.amount + (t.extra || 0) + (t.bonus || 0);
     const hasTip = (t.extra || 0) + (t.bonus || 0) > 0;
-    const isApp  = t.paymentType === 'app';
+    
+    const cr = t.cashReceived !== undefined ? t.cashReceived : t.amount;
+    const appPaid = t.amount - cr;
+    
     const badges = [
-      isApp                ? `<span class="badge badge-app-pay">📱 رصيد بلي</span>`            : '',
+      appPaid > 0          ? `<span class="badge badge-app-pay">📱 بلي: ${Formatter.num(appPaid)}</span>` : '',
       t.extra              ? `<span class="badge badge-extra">+${Formatter.num(t.extra)}</span>` : '',
       t.bonus              ? `<span class="badge badge-bonus">🎁 ${Formatter.num(t.bonus)}</span>` : '',
       t.note               ? `<span class="badge badge-note">📝 ${t.note}</span>`                : '',
     ].filter(Boolean).join('');
 
     return `
-      <div class="trip-card fade-up" onclick="App.editTrip(${t.id})">
-        <div class="trip-num" style="${isApp ? 'background:var(--info-bg);color:var(--info)' : ''}">${i + 1}</div>
+      <div class="trip-card fade-up" onclick="App.editTrip('${t.id}')">
+        <div class="trip-num" style="${appPaid > 0 ? 'background:var(--info-bg);color:var(--info)' : ''}">${i + 1}</div>
         <div class="trip-info">
           <div class="trip-amount">${Formatter.num(t.amount)} <small>د.ع</small></div>
           ${badges ? `<div class="trip-badges">${badges}</div>` : ''}

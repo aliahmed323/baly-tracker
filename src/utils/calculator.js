@@ -31,9 +31,20 @@ export const Calculator = {
     // مجموع الأجور الأساسية فقط (تُستخدم لحساب نسبة بلي)
     const totalFares   = trips.reduce((s, t) => s + (t.amount  || 0), 0);
 
-    // الزيادات والمكافآت (لا تدخل في حساب نسبة بلي)
+    // الزيادات والمكافآت
     const totalExtras  = trips.reduce((s, t) => s + (t.extra   || 0), 0);
     const totalBonuses = trips.reduce((s, t) => s + (t.bonus   || 0), 0);
+
+    // الكاش المستلم فعلياً من الرحلات
+    const totalCashReceived = trips.reduce((s, t) => {
+      let cr = t.amount;
+      if (t.cashReceived !== undefined) {
+         cr = t.cashReceived;
+      } else if (t.paymentType === 'app') {
+         cr = 0;
+      }
+      return s + (Number(cr) || 0);
+    }, 0);
 
     // إجمالي الإيرادات
     const totalRevenue = totalFares + totalExtras + totalBonuses;
@@ -44,26 +55,31 @@ export const Calculator = {
     // المصاريف
     const totalExpenses  = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
-    // تحويلات زين كاش
+    // تحويلات زين كاش (سحب من رصيد التطبيق إلى الكاش)
     const totalTransfers = transfers.reduce((s, t) => s + (t.amount || 0), 0);
 
     // صافي الأرباح = الإيرادات - نسبة التطبيق - المصاريف
     const netProfit = totalRevenue - appFee - totalExpenses;
 
-    // المبلغ الموجود فعلياً = صافي الأرباح - التحويلات
-    const cashInHand = netProfit - totalTransfers;
+    // التغير في رصيد بلي = (الأجرة المتبقية التي لم تُدفع كاش) - عمولة التطبيق + المكافآت - السحوبات (تحويلات)
+    const appBalanceChange = (totalFares - totalCashReceived) - appFee + totalBonuses - totalTransfers;
+    
+    // المبلغ النقدي الفعلي = المستلم كاش + الزيادات - المصاريف + التحويلات (سحبناها كاش)
+    const cashInHandChange = totalCashReceived + totalExtras - totalExpenses + totalTransfers;
 
     return {
       tripCount,
       totalFares,
       totalExtras,
       totalBonuses,
+      totalCashReceived,
       totalRevenue,
       appFee,
       totalExpenses,
       totalTransfers,
       netProfit,
-      cashInHand,
+      appBalance: appBalanceChange,
+      cashInHand: cashInHandChange,
     };
   },
 
