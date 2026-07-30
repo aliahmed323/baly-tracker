@@ -3,7 +3,7 @@
  * Cache-first strategy for full offline support
  */
 
-const CACHE_NAME = 'baly-v1.3.0';
+const CACHE_NAME = 'baly-v1.3.1';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -52,6 +52,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
+
+  // Ignore cross-origin requests (e.g. Firebase)
+  const url = new URL(event.request.url);
+  if (url.origin !== location.origin) return;
 
   event.respondWith(
     caches.match(event.request)

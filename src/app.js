@@ -307,6 +307,17 @@ async function confirmNumpad() {
     case 'zaincash':
       await saveTransfer(amount);
       break;
+    case 'past_trip':
+      S.pendingTrip.amount = amount;
+      const el = $('#confirm-amount');
+      if (el) el.innerHTML = Formatter.num(amount) + ' <small>د.ع</small>';
+      $('#pay-cash')?.classList.add('active');
+      $('#pay-app')?.classList.remove('active');
+      const dateInput = $('#confirm-date');
+      if (dateInput) dateInput.value = S.customDate;
+      openModal('confirm');
+      startCountdown();
+      break;
   }
 }
 
@@ -707,7 +718,9 @@ async function openDay(dateKey) {
     </div>
 
     <div class="section-header">
+    <div class="section-header">
       <div class="section-title">الرحلات (${trips.length})</div>
+      <button class="small-btn" onclick="App.openDayAddTrip('${dateKey}')">+ إضافة</button>
     </div>
     <div class="trips-list" id="day-trips-container"></div>
 
@@ -723,6 +736,24 @@ async function openDay(dateKey) {
 
   renderTripCards(trips, '#day-trips-container');
   if (expenses.length) renderExpenseCards(expenses, '#day-exp-container');
+}
+
+// فتح نافذة إضافة رحلة ليوم ماضٍ مباشرةً
+function openDayAddTrip(dateKey) {
+  // نحضّر الـ pending trip بصفر ونضع التاريخ المحدد
+  S.pendingTrip = { amount: 0, extra: 0, bonus: 0 };
+  S.paymentType = 'cash';
+  S.customDate  = dateKey;
+
+  // نفتح نافذة إدخال مبلغ مخصص (Numpad)
+  S.numpadMode  = 'past_trip';
+  S.numpadValue = '';
+  refreshNumpad();
+
+  const title = $('#numpad-title');
+  if (title) title.textContent = `رحلة ${Formatter.dateAr(dateKey)} 🚕`;
+
+  openModal('numpad');
 }
 
 // ── تفاصيل شهر محدد ─────────────────────────────
@@ -1067,6 +1098,7 @@ window.App = {
   openCustomBonus: () => { closeModal('bonus'); openNumpad('bonus'); },
   setPayType: (t)  => setPayType(t),
   setTripDate:(d)  => setTripDate(d),
+  openDayAddTrip: (d) => openDayAddTrip(d),
 
   // نامباد
   numpad:     (k)  => numpadPress(k),
