@@ -617,17 +617,27 @@ async function renderHistoryDays(container) {
 
   const days = await Reports.getAllDays();
 
+  const addBtnHtml = `
+    <div style="margin: 16px; position: relative;">
+      <button class="modal-btn modal-btn-secondary" style="width: 100%; border: 2px dashed var(--primary); color: var(--primary); background: transparent;">
+        📅 إضافة بيانات ليوم غير موجود بالقائمة
+      </button>
+      <input type="date" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" 
+             onchange="if(this.value) App.openDay(this.value)">
+    </div>
+  `;
+
   if (!days.length) {
-    container.innerHTML = `
-      <div class="empty-state">
+    container.innerHTML = addBtnHtml + `
+      <div class="empty-state" style="margin-top: 20px;">
         <div class="empty-icon">📅</div>
         <div class="empty-text">لا يوجد سجل بعد</div>
-        <div class="empty-sub">ابدأ بتسجيل رحلاتك من الشاشة الرئيسية</div>
+        <div class="empty-sub">ابدأ بتسجيل رحلاتك أو أضف يوماً سابقاً من الزر أعلاه</div>
       </div>`;
     return;
   }
 
-  container.innerHTML = days.map((day) => {
+  container.innerHTML = addBtnHtml + '<div style="margin-top: 8px;"></div>' + days.map((day) => {
     const isToday = Formatter.isToday(day.date);
     const dotColor = isToday ? 'var(--success)' : 'var(--primary)';
     const label    = isToday
