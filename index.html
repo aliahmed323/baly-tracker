@@ -182,30 +182,41 @@
   <!-- ④ شاشة المحفظة (Wallet) -->
   <div id="screen-wallet" class="screen">
     <div class="screen-header">
-      <h1>المحفظة</h1>
+      <h1>المحفظة 💼</h1>
     </div>
     <div class="screen-content">
-      
-      <!-- البطل الرئيسي للمحفظة -->
-      <div class="today-hero">
-        <div class="today-hero-label">🔓 الرصيد الحر (غير موزع)</div>
-        <div class="today-hero-value success" id="wallet-unallocated">0</div>
-        <div class="today-hero-currency">دينار عراقي</div>
+
+      <!-- بطاقتا الرصيد الكلي والرصيد الحر -->
+      <div class="wallet-summary-row">
+        <div class="wallet-summary-card total">
+          <span class="ws-icon">💵</span>
+          <div class="ws-label">نقدك الكلي</div>
+          <div class="ws-amount amber" id="wallet-total-cash">0</div>
+          <div class="ws-unit">دينار عراقي</div>
+        </div>
+        <div class="wallet-summary-card free">
+          <span class="ws-icon">🔓</span>
+          <div class="ws-label">الرصيد الحر</div>
+          <div class="ws-amount green" id="wallet-unallocated">0</div>
+          <div class="ws-unit">غير موزع</div>
+        </div>
       </div>
 
+      <!-- عنوان الصناديق -->
       <div class="section-header">
         <div class="section-title">صناديق الأموال</div>
-        <button class="small-btn" onclick="App.newEnvelope()">+ صندوق</button>
       </div>
-      
+
+      <!-- قائمة الصناديق -->
       <div class="wallet-envelopes" id="wallet-envelopes-list">
         <!-- تُملأ برمجياً -->
       </div>
 
-      <div class="section-header">
-        <div class="section-title">إجمالي النقد في جيبك</div>
-        <div id="wallet-total-cash" style="font-weight:bold; color:var(--text-main);">0</div>
-      </div>
+      <!-- زر إضافة صندوق جديد -->
+      <button class="add-env-btn" onclick="App.newEnvelope()" id="btn-add-envelope">
+        <span style="font-size:20px">＋</span>
+        <span>إضافة صندوق جديد</span>
+      </button>
 
       <div class="spacer"></div>
     </div>

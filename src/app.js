@@ -760,41 +760,73 @@ function switchTab(tab) {
 // ══════════════════════════════════════════════════
 // شاشة المحفظة والصناديق
 // ══════════════════════════════════════════════════
+
+// ألوان الصناديق بالتناوب
+const ENV_COLORS = [
+  { bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b' },
+  { bg: 'rgba(34,197,94,0.15)',   color: '#22c55e' },
+  { bg: 'rgba(59,130,246,0.15)',  color: '#3b82f6' },
+  { bg: 'rgba(168,85,247,0.15)', color: '#a855f7' },
+  { bg: 'rgba(239,68,68,0.15)',   color: '#ef4444' },
+  { bg: 'rgba(20,184,166,0.15)',  color: '#14b8a6' },
+];
+
 async function renderWallet() {
   const stats = await Wallet.getStats();
 
-  // تحديث الأرقام الرئيسية
+  // تحديث بطاقتَي الرصيد
+  setEl('#wallet-total-cash',  Formatter.num(stats.currentPhysicalCash));
   setEl('#wallet-unallocated', Formatter.num(stats.unallocated));
-  setEl('#wallet-total-cash',  Formatter.num(stats.currentPhysicalCash) + ' د.ع');
+
+  // تلوين الرصيد الحر
+  const freeEl = $('#wallet-unallocated');
+  if (freeEl) freeEl.className = 'ws-amount ' + (stats.unallocated >= 0 ? 'green' : 'danger');
 
   const container = $('#wallet-envelopes-list');
   if (!container) return;
 
   if (!stats.envelopes.length) {
     container.innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state" style="margin:8px 0 16px">
         <div class="empty-icon">💼</div>
         <div class="empty-text">لا توجد صناديق بعد</div>
-        <div class="empty-sub">أضف صندوقاً لتنظيم أموالك (مثلاً: مصاريف المنزل)</div>
+        <div class="empty-sub">أنشئ صندوقاً لتنظيم أموالك مثل (قرض، إيجار، منزل)</div>
       </div>`;
     return;
   }
 
-  container.innerHTML = stats.envelopes.map(env => `
+  container.innerHTML = stats.envelopes.map((env, i) => {
+    const clr = ENV_COLORS[i % ENV_COLORS.length];
+    const pct = env.target > 0
+      ? Math.min(100, Math.round((env.balance / env.target) * 100))
+      : 0;
+
+    return `
     <div class="env-card fade-up">
-      <div style="display:flex; align-items:center;">
-        <div class="env-icon">${env.icon}</div>
-        <div class="env-info" style="margin-right:12px;">
-          <div class="env-title">${env.name}</div>
-          <div class="env-balance">${Formatter.num(env.balance)} <small>د.ع</small></div>
+      <div class="env-card-top">
+        <div class="env-icon-wrap" style="background:${clr.bg}">${env.icon}</div>
+        <div class="env-card-body">
+          <div class="env-name">${env.name}</div>
+          <div class="env-balance-row">
+            <span class="env-balance" style="color:${clr.color}">${Formatter.num(env.balance)}</span>
+            <span class="env-currency">د.ع</span>
+          </div>
         </div>
       </div>
+      ${env.target > 0 ? `
+      <div class="env-progress-bar">
+        <div class="env-progress-fill" style="width:${pct}%;background:${clr.color}"></div>
+      </div>` : ''}
       <div class="env-actions">
-        <button class="env-btn add" onclick="App.openTransferEnv('${env.id}')">📥 إيداع</button>
-        <button class="env-btn sub" onclick="App.openExpenseEnv('${env.id}')">💸 صرف</button>
+        <button class="env-action-btn deposit" onclick="App.openTransferEnv('${env.id}')">
+          📥 إيداع
+        </button>
+        <button class="env-action-btn spend" onclick="App.openExpenseEnv('${env.id}')">
+          💸 صرف
+        </button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function newEnvelope() {
