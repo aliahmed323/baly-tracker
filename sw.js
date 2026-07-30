@@ -3,7 +3,7 @@
  * Cache-first strategy for full offline support
  */
 
-const CACHE_NAME = 'baly-v1.0.0';
+const CACHE_NAME = 'baly-v1.3.0';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -20,6 +20,7 @@ const ASSETS_TO_CACHE = [
   './src/modules/expenses.js',
   './src/modules/transfers.js',
   './src/modules/reports.js',
+  './src/modules/wallet.js',
   './src/app.js',
 ];
 
