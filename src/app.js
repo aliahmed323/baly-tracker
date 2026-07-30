@@ -704,7 +704,6 @@ async function openDay(dateKey) {
     </div>
 
     <div class="section-header">
-    <div class="section-header">
       <div class="section-title">الرحلات (${trips.length})</div>
       <button class="small-btn" onclick="App.openDayAddTrip('${dateKey}')">+ إضافة</button>
     </div>
