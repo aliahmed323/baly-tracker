@@ -128,32 +128,41 @@ export const Wallet = {
   // ── الإحصائيات والأرصدة ────────────────────────
 
   async getStats() {
-    // 1. كل الكاش الذي أدخله السائق من التكسي (صافي بعد مصاريف التكسي وزين كاش)
+    // 1. كل إحصائيات التكسي (الكلية من كل الأوقات)
     const taxiStats = await Reports.getAllTimeStats();
-    const totalTaxiCash = taxiStats.cashInHand || 0;
+    
+    const netProfit      = taxiStats.netProfit      || 0; // صافي الأرباح الحقيقي
+    const appBalance     = taxiStats.appBalance     || 0; // رصيد بلي الذي لم يُسحب
+    const totalExpenses  = taxiStats.totalExpenses  || 0;
+    const totalTransfers = taxiStats.totalTransfers || 0;
 
     // 2. قراءة كل الصناديق
     const envelopes = await this.getEnvelopes();
     const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
 
-    // 3. قراءة كل مصاريف المحفظة (فقط نوع envelope_expense هي التي تخرج المال فعلياً من جيب السائق)
+    // 3. مصاريف المحفظة (الصرف من الصناديق)
     const txs = await Database.getAllWalletTransactions();
     const totalWalletExpenses = txs
       .filter(t => t.type === 'envelope_expense')
       .reduce((s, t) => s + t.amount, 0);
 
-    // 4. الرصيد الفعلي الموجود في جيب السائق الآن
-    const currentPhysicalCash = totalTaxiCash - totalWalletExpenses;
+    // 4. الرصيد الصافي المتاح بعد مصاريف المحفظة
+    const currentPhysicalCash = netProfit - totalWalletExpenses;
 
     // 5. الرصيد الحر (غير الموزع على الصناديق)
     const unallocated = currentPhysicalCash - totalInEnvelopes;
 
     return {
-      totalTaxiCash,
+      netProfit,
+      appBalance,
+      totalExpenses,
+      totalTransfers,
       currentPhysicalCash,
       totalInEnvelopes,
       unallocated,
-      envelopes
+      envelopes,
+      // للتوافق مع الكود القديم
+      totalTaxiCash: netProfit,
     };
   },
 

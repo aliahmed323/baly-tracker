@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="./assets/styles/main.css?v=2.0.1">
+  <link rel="stylesheet" href="./assets/styles/main.css?v=2.1.0">
 </head>
 
 <body>
@@ -186,19 +186,30 @@
     </div>
     <div class="screen-content">
 
-      <!-- بطاقتا الرصيد الكلي والرصيد الحر -->
-      <div class="wallet-summary-row">
-        <div class="wallet-summary-card total">
-          <span class="ws-icon">💵</span>
-          <div class="ws-label">نقدك الكلي</div>
-          <div class="ws-amount amber" id="wallet-total-cash">0</div>
-          <div class="ws-unit">دينار عراقي</div>
+      <!-- ملخص مالي كامل -->
+      <div class="today-hero" style="margin: 0 16px 12px;">
+        <div class="today-hero-label">💰 صافي أرباحك الكلية</div>
+        <div class="today-hero-value" id="wallet-total-cash">0</div>
+        <div class="today-hero-currency">دينار عراقي</div>
+      </div>
+
+      <!-- تفاصيل مالية -->
+      <div class="today-stats-grid" style="margin: 0 16px 8px;">
+        <div class="stat-card">
+          <div class="stat-label">📱 رصيد بلي غير مسحوب</div>
+          <div class="stat-value info" id="wallet-app-balance">0</div>
         </div>
-        <div class="wallet-summary-card free">
-          <span class="ws-icon">🔓</span>
-          <div class="ws-label">الرصيد الحر</div>
-          <div class="ws-amount green" id="wallet-unallocated">0</div>
-          <div class="ws-unit">غير موزع</div>
+        <div class="stat-card">
+          <div class="stat-label">⛽ مصاريف مدفوعة</div>
+          <div class="stat-value danger" id="wallet-total-expenses">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">💳 تحويلات زين كاش</div>
+          <div class="stat-value" id="wallet-total-transfers">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🔓 الرصيد الحر الموزَّع</div>
+          <div class="stat-value green" id="wallet-unallocated">0</div>
         </div>
       </div>
 
@@ -261,7 +272,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v2.0.2 — إصلاح استجابة القاصات</div>
+              <div class="settings-subtitle">بلي v2.1.0 — محفظة ذكية وحذف متقدم</div>
             </div>
           </div>
         </div>
@@ -590,6 +601,6 @@
 </div><!-- /app -->
 
 <!-- JavaScript — ES Modules -->
-<script type="module" src="./src/app.js?v=2.0.2"></script>
+<script type="module" src="./src/app.js?v=2.1.0"></script>
 </body>
 </html>

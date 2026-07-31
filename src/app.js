@@ -441,6 +441,34 @@ async function undoLastTrip() {
   if (S.screen === 'today') renderToday();
 }
 
+// ── حذف مصروف مباشرةً من البطاقة ──────────────────
+async function deleteExpenseItem(expenseId) {
+  if (!confirm('هل تريد حذف هذا المصروف؟')) return;
+  try {
+    await Expenses.delete(expenseId);
+    await refreshHomeStats();
+    if (S.screen === 'today') renderToday();
+    if (S.viewingDate) openDay(S.viewingDate);
+    flashToast('🗑️ تم حذف المصروف', '');
+  } catch (e) {
+    alert('حدث خطأ أثناء الحذف');
+  }
+}
+
+// ── حذف تحويل زين كاش مباشرةً من البطاقة ───────────
+async function deleteTransferItem(transferId) {
+  if (!confirm('هل تريد حذف هذا التحويل؟')) return;
+  try {
+    await Transfers.delete(transferId);
+    await refreshHomeStats();
+    if (S.screen === 'today') renderToday();
+    if (S.viewingDate) openDay(S.viewingDate);
+    flashToast('🗑️ تم حذف التحويل', '');
+  } catch (e) {
+    alert('حدث خطأ أثناء الحذف');
+  }
+}
+
 // ══════════════════════════════════════════════════
 // شاشة اليوم
 // ══════════════════════════════════════════════════
@@ -535,9 +563,11 @@ function renderExpenseCards(expenses, containerSel) {
           <div class="trip-amount" style="font-size:16px">${cat.name}</div>
           ${e.note ? `<div class="trip-badges"><span class="badge badge-note">📝 ${e.note}</span></div>` : ''}
         </div>
-        <div class="trip-right">
+        <div class="trip-right" style="gap:6px;">
           <div class="trip-total" style="color:var(--danger)">-${Formatter.num(e.amount)}</div>
           <div class="trip-time">${Formatter.time(e.timestamp)}</div>
+          <button class="small-btn" style="background:rgba(239,68,68,0.12);color:var(--danger);font-size:11px;padding:4px 10px;"
+                  onclick="event.stopPropagation();App.deleteExpenseItem('${e.id}')">🗑️ حذف</button>
         </div>
       </div>`;
   }).join('');
@@ -556,9 +586,11 @@ function renderTransferCards(transfers, containerSel) {
         <div class="trip-amount" style="font-size:16px">زين كاش</div>
         ${t.note ? `<div class="trip-badges"><span class="badge badge-note">${t.note}</span></div>` : ''}
       </div>
-      <div class="trip-right">
+      <div class="trip-right" style="gap:6px;">
         <div class="trip-total" style="color:var(--info)">${Formatter.num(t.amount)}</div>
         <div class="trip-time">${Formatter.time(t.timestamp)}</div>
+        <button class="small-btn" style="background:rgba(239,68,68,0.12);color:var(--danger);font-size:11px;padding:4px 10px;"
+                onclick="event.stopPropagation();App.deleteTransferItem('${t.id}')">🗑️ حذف</button>
       </div>
     </div>`).join('');
 }
@@ -823,13 +855,19 @@ const ENV_COLORS = [
 async function renderWallet() {
   const stats = await Wallet.getStats();
 
-  // تحديث بطاقتَي الرصيد
-  setEl('#wallet-total-cash',  Formatter.num(stats.currentPhysicalCash));
+  // تحديث بطاقة الملخص المالي — نعرض صافي الأرباح الكلية وليس الكاش الخام
+  setEl('#wallet-total-cash',  Formatter.num(stats.netProfit));
   setEl('#wallet-unallocated', Formatter.num(stats.unallocated));
 
   // تلوين الرصيد الحر
   const freeEl = $('#wallet-unallocated');
   if (freeEl) freeEl.className = 'ws-amount ' + (stats.unallocated >= 0 ? 'green' : 'danger');
+
+  // تحديث تفاصيل المحفظة
+  setEl('#wallet-net-profit', Formatter.num(stats.netProfit));
+  setEl('#wallet-app-balance', Formatter.num(stats.appBalance));
+  setEl('#wallet-total-expenses', Formatter.num(stats.totalExpenses));
+  setEl('#wallet-total-transfers', Formatter.num(stats.totalTransfers));
 
   const container = $('#wallet-envelopes-list');
   if (!container) return;
@@ -1202,6 +1240,10 @@ window.App = {
   confirmExpenseEnv:  () => confirmExpenseEnv(),
   openEnvDetails:     (id) => openEnvDetails(id),
   deleteEnvTransaction: (txId, envId) => deleteEnvTransaction(txId, envId),
+
+  // حذف مباشر من البطاقات
+  deleteExpenseItem:  (id) => deleteExpenseItem(id),
+  deleteTransferItem: (id) => deleteTransferItem(id),
 
   // Toast
   editLast:   ()   => { if (S.lastTripId) { hideToast(); openEditTrip(S.lastTripId); } },
