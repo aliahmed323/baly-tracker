@@ -853,56 +853,121 @@ const ENV_COLORS = [
 ];
 
 async function renderWallet() {
-  const stats = await Wallet.getStats();
+  const [walletStats, todayData] = await Promise.all([
+    Wallet.getStats(),
+    Reports.getToday(),
+  ]);
+  const today = todayData.stats;
 
-  // تحديث بطاقة الملخص المالي — نعرض صافي الأرباح الكلية وليس الكاش الخام
-  setEl('#wallet-total-cash',  Formatter.num(stats.netProfit));
-  setEl('#wallet-unallocated', Formatter.num(stats.unallocated));
+  // ── Hero: صافي الأرباح الكلية ──
+  setEl('#wallet-total-cash', Formatter.num(walletStats.netProfit));
 
-  // تلوين الرصيد الحر
-  const freeEl = $('#wallet-unallocated');
-  if (freeEl) freeEl.className = 'ws-amount ' + (stats.unallocated >= 0 ? 'green' : 'danger');
+  // ── ملخص اليوم ──
+  setEl('#w-today-fares', Formatter.num(today.totalFares + today.totalExtras + today.totalBonuses));
+  setEl('#w-today-fee',   Formatter.num(today.appFee));
+  setEl('#w-today-exp',   Formatter.num(today.totalExpenses));
+  const todayNet = today.netProfit;
+  const todayNetEl = $('#w-today-net');
+  if (todayNetEl) {
+    todayNetEl.textContent = Formatter.num(todayNet);
+    todayNetEl.className = 'stat-value ' + (todayNet >= 0 ? 'success' : 'danger');
+  }
 
-  // تحديث تفاصيل المحفظة
-  setEl('#wallet-net-profit', Formatter.num(stats.netProfit));
-  setEl('#wallet-app-balance', Formatter.num(stats.appBalance));
-  setEl('#wallet-total-expenses', Formatter.num(stats.totalExpenses));
-  setEl('#wallet-total-transfers', Formatter.num(stats.totalTransfers));
+  // ── اقتراحات العزل اليومي ──
+  const envsWithTarget = walletStats.envelopes.filter(e => e.dailyTarget > 0);
+  const suggestionsContainer = $('#wallet-suggestions');
+  const suggestionsHeader    = $('#w-suggestions-header');
+  const freeWrap             = $('#w-free-wrap');
 
+  if (envsWithTarget.length && suggestionsContainer) {
+    if (suggestionsHeader) suggestionsHeader.style.display = '';
+    if (freeWrap) freeWrap.style.display = '';
+
+    let totalSuggested = 0;
+    suggestionsContainer.innerHTML = envsWithTarget.map(env => {
+      totalSuggested += env.dailyTarget;
+      const monthly = env.monthlyTarget || env.target || 0;
+      return `
+        <div class="daily-suggestion-row">
+          <span class="ds-icon">${env.icon}</span>
+          <div class="ds-info">
+            <div class="ds-name">${env.name}</div>
+            <div>
+              <span class="ds-amount">${Formatter.num(env.dailyTarget)}</span>
+              <span class="ds-unit">د.ع / يوم</span>
+            </div>
+            ${monthly > 0 ? `<div class="ds-monthly">هدف الشهر: ${Formatter.num(monthly)}</div>` : ''}
+          </div>
+          <button class="ds-deposit-btn" onclick="App.openTransferEnv('${env.id}')">
+            📥 إيداع
+          </button>
+        </div>`;
+    }).join('');
+
+    const freeToday = todayNet - totalSuggested;
+    const freeEl = $('#w-free-today');
+    if (freeEl) {
+      freeEl.textContent = Formatter.num(freeToday);
+      freeEl.style.color = freeToday >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+  } else {
+    if (suggestionsHeader) suggestionsHeader.style.display = 'none';
+    if (freeWrap) freeWrap.style.display = 'none';
+    if (suggestionsContainer) suggestionsContainer.innerHTML = '';
+  }
+
+  // ── Unallocated badge ──
+  const badge = $('#w-unallocated-badge');
+  if (badge) {
+    const unalloc = walletStats.unallocated;
+    badge.textContent = `حر: ${Formatter.num(unalloc)}`;
+    badge.style.color = unalloc >= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+
+  // ── الصناديق ──
   const container = $('#wallet-envelopes-list');
   if (!container) return;
 
-  if (!stats.envelopes.length) {
+  if (!walletStats.envelopes.length) {
     container.innerHTML = `
       <div class="empty-state" style="margin:8px 0 16px">
         <div class="empty-icon">💼</div>
         <div class="empty-text">لا توجد صناديق بعد</div>
-        <div class="empty-sub">أنشئ صندوقاً لتنظيم أموالك مثل (قرض، إيجار، منزل)</div>
+        <div class="empty-sub">أنشئ صندوقاً لتنظيم أموالك مثل (إيجار، بنزين، سلفة)</div>
       </div>`;
     return;
   }
 
-  container.innerHTML = stats.envelopes.map((env, i) => {
+  container.innerHTML = walletStats.envelopes.map((env, i) => {
     const clr = ENV_COLORS[i % ENV_COLORS.length];
-    const pct = env.target > 0
-      ? Math.min(100, Math.round((env.balance / env.target) * 100))
+    const monthly = env.monthlyTarget || env.target || 0;
+    const pct = monthly > 0
+      ? Math.min(100, Math.round((env.balance / monthly) * 100))
       : 0;
+    const progressColor = pct >= 100 ? 'var(--success)' : clr.color;
 
     return `
     <div class="env-card fade-up">
-      <div class="env-card-top" onclick="App.openEnvDetails('${env.id}')" style="cursor: pointer;">
+      <div class="env-card-top" onclick="App.openEnvDetails('${env.id}')" style="cursor:pointer">
         <div class="env-icon-wrap" style="background:${clr.bg}">${env.icon}</div>
         <div class="env-card-body">
-          <div class="env-name">${env.name} <small style="color:var(--text-muted);font-weight:normal;font-size:11px;">(اضغط للتفاصيل)</small></div>
+          <div class="env-name">${env.name}</div>
           <div class="env-balance-row">
             <span class="env-balance" style="color:${clr.color}">${Formatter.num(env.balance)}</span>
             <span class="env-currency">د.ع</span>
           </div>
+          ${monthly > 0 ? `<div class="env-target-row">الهدف: ${Formatter.num(monthly)} (يومي: ${Formatter.num(env.dailyTarget || Math.round(monthly/30))})</div>` : ''}
         </div>
       </div>
-      ${env.target > 0 ? `
-      <div class="env-progress-bar">
-        <div class="env-progress-fill" style="width:${pct}%;background:${clr.color}"></div>
+      ${monthly > 0 ? `
+      <div style="padding: 0 16px 2px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:11px;color:var(--text-muted)">${Formatter.num(env.balance)} / ${Formatter.num(monthly)}</span>
+          <span style="font-size:11px;font-weight:800;color:${progressColor}">${pct}%</span>
+        </div>
+        <div class="env-progress-bar" style="height:6px;border-radius:6px;margin:0;background:rgba(255,255,255,0.06);">
+          <div style="width:${pct}%;height:100%;border-radius:6px;background:linear-gradient(90deg,${clr.color}88,${clr.color});transition:width 0.5s ease;"></div>
+        </div>
       </div>` : ''}
       <div class="env-actions">
         <button class="env-action-btn deposit" onclick="App.openTransferEnv('${env.id}')">
@@ -916,21 +981,58 @@ async function renderWallet() {
   }).join('');
 }
 
-async function newEnvelope() {
-  const name = prompt('اسم الصندوق الجديد (مثلاً: مصاريف المنزل):');
-  if (!name) return;
-  const icon = prompt('رمز تعبيري للصندوق (اختياري):', '💰') || '💰';
-  
-  await Wallet.addEnvelope({ name, icon, target: 0 });
-  
-  // إذا كان الاسم يحتوي على كلمة "منزل"، نُعلّمه ليظهر في تقارير المنزل الخاصة
-  if (name.includes('منزل')) {
-    const envs = await Wallet.getEnvelopes();
-    const e = envs[envs.length - 1];
-    e.isHome = true;
-    await Wallet.updateEnvelope(e);
+let _newEnvEmoji = '💰';
+
+function newEnvelope() {
+  _newEnvEmoji = '💰';
+  $('#ne-name').value = '';
+  $('#ne-monthly').value = '';
+  $('#ne-daily-hint').textContent = '';
+  // reset emoji selection
+  $$('.emoji-btn', $('#ne-emoji-picker')).forEach(b => b.classList.toggle('active', b.dataset.e === '💰'));
+  openModal('new-envelope');
+  setTimeout(() => $('#ne-name')?.focus(), 300);
+}
+
+function pickEnvEmoji(emoji) {
+  _newEnvEmoji = emoji;
+  $$('.emoji-btn', $('#ne-emoji-picker')).forEach(b => b.classList.toggle('active', b.dataset.e === emoji));
+}
+
+function calcDailyTarget() {
+  const monthly = Number($('#ne-monthly')?.value);
+  const hint = $('#ne-daily-hint');
+  if (!hint) return;
+  if (monthly > 0) {
+    const daily = Math.round(monthly / 30);
+    hint.textContent = `≈ ${Formatter.num(daily)} دينار / يوم`;
+  } else {
+    hint.textContent = '';
   }
+}
+
+async function saveNewEnvelope() {
+  const name = $('#ne-name')?.value?.trim();
+  if (!name) { alert('يرجى كتابة اسم الصندوق'); return; }
   
+  const monthlyTarget = Number($('#ne-monthly')?.value) || 0;
+  const dailyTarget   = monthlyTarget > 0 ? Math.round(monthlyTarget / 30) : 0;
+
+  const env = await Wallet.addEnvelope({
+    name,
+    icon:  _newEnvEmoji,
+    target: monthlyTarget,
+    monthlyTarget,
+    dailyTarget,
+  });
+
+  if (name.includes('منزل')) {
+    env.isHome = true;
+    await Wallet.updateEnvelope(env);
+  }
+
+  closeModal('new-envelope');
+  flashToast(`✅ تم إنشاء صندوق "${name}"`, '');
   if (S.screen === 'wallet') renderWallet();
 }
 
@@ -1234,6 +1336,9 @@ window.App = {
 
   // المحفظة
   newEnvelope:        () => newEnvelope(),
+  pickEnvEmoji:   (e)    => pickEnvEmoji(e),
+  calcDailyTarget:()     => calcDailyTarget(),
+  saveNewEnvelope:()     => saveNewEnvelope(),
   openTransferEnv:    (id) => openTransferEnv(id),
   confirmTransferEnv: () => confirmTransferEnv(),
   openExpenseEnv:     (id) => openExpenseEnv(id),

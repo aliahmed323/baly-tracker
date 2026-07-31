@@ -14,9 +14,16 @@ export const Wallet = {
     return Database.getAllEnvelopes();
   },
 
-  async addEnvelope({ name, icon = '💰', target = 0 }) {
+  async addEnvelope({ name, icon = '💰', target = 0, monthlyTarget = 0, dailyTarget = 0 }) {
     const id = 'env_' + Date.now();
-    const env = { id, name, icon, target, balance: 0, createdAt: Date.now() };
+    const env = { 
+      id, name, icon, 
+      target: monthlyTarget || target, 
+      monthlyTarget: monthlyTarget || target, 
+      dailyTarget, 
+      balance: 0, 
+      createdAt: Date.now() 
+    };
     await Database.putEnvelope(env);
     return env;
   },

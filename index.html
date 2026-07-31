@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="./assets/styles/main.css?v=2.1.0">
+  <link rel="stylesheet" href="./assets/styles/main.css?v=2.0.0i">
 </head>
 
 <body>
@@ -186,44 +186,60 @@
     </div>
     <div class="screen-content">
 
-      <!-- ملخص مالي كامل -->
-      <div class="today-hero" style="margin: 0 16px 12px;">
-        <div class="today-hero-label">💰 صافي أرباحك الكلية</div>
-        <div class="today-hero-value" id="wallet-total-cash">0</div>
-        <div class="today-hero-currency">دينار عراقي</div>
+      <!-- صافي الأرباح الكلية -->
+      <div class="wallet-hero-card">
+        <div class="whc-label">💰 صافي أرباحك الكلية</div>
+        <div class="whc-value" id="wallet-total-cash">0</div>
+        <div class="whc-sub">دينار عراقي</div>
       </div>
 
-      <!-- تفاصيل مالية -->
+      <!-- ملخص اليوم -->
+      <div class="section-header">
+        <div class="section-title">📅 ملخص اليوم</div>
+      </div>
       <div class="today-stats-grid" style="margin: 0 16px 8px;">
         <div class="stat-card">
-          <div class="stat-label">📱 رصيد بلي غير مسحوب</div>
-          <div class="stat-value info" id="wallet-app-balance">0</div>
+          <div class="stat-label">إجمالي الأجور</div>
+          <div class="stat-value primary" id="w-today-fares">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">⛽ مصاريف مدفوعة</div>
-          <div class="stat-value danger" id="wallet-total-expenses">0</div>
+          <div class="stat-label">نسبة بلي 📱</div>
+          <div class="stat-value danger" id="w-today-fee">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">💳 تحويلات زين كاش</div>
-          <div class="stat-value" id="wallet-total-transfers">0</div>
+          <div class="stat-label">المصاريف ⛽</div>
+          <div class="stat-value danger" id="w-today-exp">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">🔓 الرصيد الحر الموزَّع</div>
-          <div class="stat-value green" id="wallet-unallocated">0</div>
+          <div class="stat-label">✅ صافي ربحك اليوم</div>
+          <div class="stat-value success" id="w-today-net">0</div>
         </div>
       </div>
 
-      <!-- عنوان الصناديق -->
+      <!-- اقتراح العزل اليومي -->
+      <div class="section-header" id="w-suggestions-header" style="display:none">
+        <div class="section-title">💡 ما تعزله اليوم</div>
+      </div>
+      <div id="wallet-suggestions" style="margin: 0 16px;"></div>
+
+      <!-- الحر المتبقي -->
+      <div id="w-free-wrap" style="display:none; margin: 8px 16px;">
+        <div class="wallet-free-row">
+          <span class="wallet-free-label">💵 الحر لليوم بعد العزل</span>
+          <span class="wallet-free-value" id="w-free-today">0</span>
+        </div>
+      </div>
+
+      <!-- الصناديق -->
       <div class="section-header">
         <div class="section-title">صناديق الأموال</div>
+        <span class="section-badge" id="w-unallocated-badge"></span>
       </div>
 
-      <!-- قائمة الصناديق -->
       <div class="wallet-envelopes" id="wallet-envelopes-list">
         <!-- تُملأ برمجياً -->
       </div>
 
-      <!-- زر إضافة صندوق جديد -->
       <button class="add-env-btn" onclick="App.newEnvelope()" id="btn-add-envelope">
         <span style="font-size:20px">＋</span>
         <span>إضافة صندوق جديد</span>
@@ -272,7 +288,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v2.1.0 — محفظة ذكية وحذف متقدم</div>
+              <div class="settings-subtitle">بلي v2.0.0 I — المحفظة الذكية</div>
             </div>
           </div>
         </div>
@@ -564,6 +580,50 @@
   </div>
 
 
+  <!-- ⑪ نافذة إنشاء صندوق جديد -->
+  <div id="modal-new-envelope" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📦 صندوق جديد</div>
+
+      <div class="edit-group">
+        <div class="edit-label">اسم الصندوق</div>
+        <input class="edit-input" id="ne-name" placeholder="مثال: إيجار، بنزين، سلفة..." type="text">
+      </div>
+
+      <div class="edit-group">
+        <div class="edit-label">الرمز</div>
+        <div class="emoji-grid" id="ne-emoji-picker">
+          <button class="emoji-btn active" data-e="💰" onclick="App.pickEnvEmoji('💰')">💰</button>
+          <button class="emoji-btn" data-e="🏠" onclick="App.pickEnvEmoji('🏠')">🏠</button>
+          <button class="emoji-btn" data-e="⛽" onclick="App.pickEnvEmoji('⛽')">⛽</button>
+          <button class="emoji-btn" data-e="💳" onclick="App.pickEnvEmoji('💳')">💳</button>
+          <button class="emoji-btn" data-e="🎯" onclick="App.pickEnvEmoji('🎯')">🎯</button>
+          <button class="emoji-btn" data-e="💊" onclick="App.pickEnvEmoji('💊')">💊</button>
+          <button class="emoji-btn" data-e="🛒" onclick="App.pickEnvEmoji('🛒')">🛒</button>
+          <button class="emoji-btn" data-e="📱" onclick="App.pickEnvEmoji('📱')">📱</button>
+          <button class="emoji-btn" data-e="🚗" onclick="App.pickEnvEmoji('🚗')">🚗</button>
+          <button class="emoji-btn" data-e="🧾" onclick="App.pickEnvEmoji('🧾')">🧾</button>
+          <button class="emoji-btn" data-e="🏦" onclick="App.pickEnvEmoji('🏦')">🏦</button>
+          <button class="emoji-btn" data-e="💡" onclick="App.pickEnvEmoji('💡')">💡</button>
+        </div>
+      </div>
+
+      <div class="edit-group">
+        <div class="edit-label">الهدف الشهري (اختياري)</div>
+        <input class="edit-input" id="ne-monthly" placeholder="مثال: 250000" type="number" inputmode="numeric"
+               oninput="App.calcDailyTarget()">
+        <div class="ne-hint" id="ne-daily-hint"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveNewEnvelope()" id="btn-save-new-env">
+          💾 &nbsp;حفظ الصندوق
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ⑩ تفاصيل وسجل القاصة -->
   <div id="modal-env-details" class="modal-overlay" onclick="if(event.target===this)App.close()">
     <div class="modal-sheet" role="dialog" style="max-height: 85vh; display: flex; flex-direction: column;">
@@ -601,6 +661,6 @@
 </div><!-- /app -->
 
 <!-- JavaScript — ES Modules -->
-<script type="module" src="./src/app.js?v=2.1.0"></script>
+<script type="module" src="./src/app.js?v=2.0.0i"></script>
 </body>
 </html>
