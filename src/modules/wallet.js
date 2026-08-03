@@ -152,22 +152,51 @@ export const Wallet = {
     const totalExpenses  = taxiStats.totalExpenses  || 0;
     const totalTransfers = taxiStats.totalTransfers || 0;
 
-    // ── 4-WALLET BREAKDOWN ──
-    // Zain Cash: bonuses (type=zain_bonus) minus withdrawals (type=zain_withdraw or no type)
-    const zainBonuses     = allTransfers.filter(t => t.transferType === 'zain_bonus').reduce((s,t) => s+(t.amount||0), 0);
-    const zainWithdrawals = allTransfers.filter(t => !t.transferType || t.transferType === 'zain_withdraw').reduce((s,t) => s+(t.amount||0), 0);
-    const zainDeposits    = allTransfers.filter(t => t.transferType === 'zain_deposit').reduce((s,t) => s+(t.amount||0), 0);
-    const zainCashBalance = zainBonuses - zainWithdrawals + zainDeposits;
+    // ── 4-WALLET BREAKDOWN (الحسابة الصحيحة) ──────────────────────────────
+    //
+    // المنطق:
+    // ● البيانات القديمة (لا يوجد transferType): مكافأة شركة استلمتها من زين كاش إلى يدك مباشرة
+    //   → صافي الربح يشملها (تم إصلاحه في calculator.js)
+    //   → زين كاش: صفر (دخلت وخرجت في نفس الوقت)
+    //   → رصيد بلي: كان يُطرح منه خطأً → نعيده
+    //   → النقد: موجود فعلاً (cashInHand يشمله بالفعل)
+    //
+    // ● البيانات الجديدة (zain_bonus): مكافأة لا تزال في زين كاش لم تُسحب
+    //   → تُضاف لزين كاش
+    //   → تُطرح من النقد (لم تصل لليد بعد)
+    //
+    // الإثبات الرياضي: نقد + زين كاش + رصيد بلي + وقود = صافي الربح ✓
 
-    // Add zain cash company bonuses to net profit (they're not in trips table)
-    const adjustedNetProfit = netProfit + zainBonuses;
+    const allTransfersSum    = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
+    const newZainBonuses     = allTransfers.filter(t => t.transferType === 'zain_bonus').reduce((s,t) => s+(t.amount||0), 0);
+    const totalFuelTopups    = fuelData.totalPaid;
+    const fuelConsumed       = fuelData.totalConsumed;
 
-    // Fuel wallet (from FuelWallet.getBalance())
-    const fuelWalletBalance = fuelData.balance;
-    const totalFuelTopups   = fuelData.totalPaid;
+    // 💰 صافي الربح المعدّل:
+    // calculator.js يشمل allTransfers في netProfit (تم الإصلاح)
+    // نطرح منه تكلفة الوقود المستهلك (غير محسوبة في calculator لأنها في جدول منفصل)
+    const adjustedNetProfit = netProfit - fuelConsumed;
 
-    // Cash in hand: cash received + extras - expenses - fuel topups + withdrawals from zain - deposits to zain
-    const adjustedCash = (taxiStats.cashInHand || 0) - zainBonuses - totalFuelTopups;
+    // 💵 النقد بيدك:
+    // taxiStats.cashInHand يشمل بالفعل: +كاش رحلات +زيادات -مصاريف +كل التحويلات
+    // نطرح: المبالغ التي لم تصل لليد فعلاً
+    //   - newZainBonuses: مكافآت جديدة لا تزال في زين كاش
+    //   - totalFuelTopups: دفعتها للمحطة (ذهبت لمحفظة الوقود)
+    const adjustedCash = (taxiStats.cashInHand || 0) - newZainBonuses - totalFuelTopups;
+
+    // 💳 زين كاش:
+    // البيانات القديمة (بدون نوع): صفر (دخلت وخرجت إلى النقد مباشرة)
+    // المكافآت الجديدة (zain_bonus): لا تزال في زين كاش
+    const zainCashBalance = newZainBonuses;
+
+    // 📱 رصيد بلي:
+    // calculator.js كان يطرح جميع التحويلات من رصيد بلي (خطأ - هي من زين كاش وليس من بلي)
+    // appBalance = (فارق الأجرة) - نسبة بلي - كل التحويلات ← نعيد التحويلات
+    const correctedBalyBalance = appBalance + allTransfersSum;
+
+    // ⛽ محفظة الوقود:
+    const fuelWalletBalance = fuelData.balance; // = totalPaid - fuelConsumed
+
 
     // 2. قراءة كل الصناديق
     const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
@@ -185,7 +214,7 @@ export const Wallet = {
 
     return {
       netProfit: adjustedNetProfit,
-      appBalance,
+      appBalance: correctedBalyBalance,
       totalExpenses,
       totalTransfers,
       currentPhysicalCash,
@@ -197,7 +226,7 @@ export const Wallet = {
       // NEW v3.0 wallet breakdown:
       cashInHand:       adjustedCash,
       zainCashBalance,
-      balyBalance:      appBalance,
+      balyBalance:      correctedBalyBalance,
       fuelWalletBalance,
       fuelData,
     };

@@ -58,8 +58,9 @@ export const Calculator = {
     // تحويلات زين كاش (سحب من رصيد التطبيق إلى الكاش)
     const totalTransfers = transfers.reduce((s, t) => s + (t.amount || 0), 0);
 
-    // صافي الأرباح = الإيرادات - نسبة التطبيق - المصاريف
-    const netProfit = totalRevenue - appFee - totalExpenses;
+    // صافي الأرباح = الإيرادات + تحويلات زين كاش (مكافآت شركة) - نسبة التطبيق - المصاريف
+    // تحويلات زين كاش هي مكافآت من الشركة وتُضاف للأرباح الحقيقية
+    const netProfit = totalRevenue + totalTransfers - appFee - totalExpenses;
 
     // التغير في رصيد بلي = (الأجرة المتبقية التي لم تُدفع كاش) - عمولة التطبيق + المكافآت - السحوبات (تحويلات)
     const appBalanceChange = (totalFares - totalCashReceived) - appFee + totalBonuses - totalTransfers;
