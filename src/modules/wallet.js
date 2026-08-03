@@ -6,6 +6,8 @@ import { Database } from '../db/database.js';
 import { Reports }  from './reports.js';
 import { Formatter } from '../utils/formatter.js';
 import { FuelWallet } from './fuelWallet.js';
+import { Bonuses }     from './bonuses.js';
+import { BalyBalance } from './balyBalance.js';
 
 
 export const Wallet = {
@@ -137,98 +139,72 @@ export const Wallet = {
   // ── الإحصائيات والأرصدة ────────────────────────
 
   async getStats() {
-    // 1. كل إحصائيات التكسي (الكلية من كل الأوقات)
-    const [taxiStats, envelopes, txs, fuelData, allTransfers, allTopups] = await Promise.all([
+    // جلب كل البيانات معاً
+    const [taxiStats, envelopes, txs, fuelData, allTransfers, allBonuses, allBalySnaps] = await Promise.all([
       Reports.getAllTimeStats(),
       this.getEnvelopes(),
       Database.getAllWalletTransactions(),
       FuelWallet.getBalance(),
       Database.getAllTransfers(),
-      Database.getAllFuelTopups(),
+      Database.getAllCompanyBonuses(),
+      Database.getAllBalySnapshots(),
     ]);
-    
-    const netProfit      = taxiStats.netProfit      || 0; // صافي الأرباح الحقيقي
-    const appBalance     = taxiStats.appBalance     || 0; // رصيد بلي الذي لم يُسحب
-    const totalExpenses  = taxiStats.totalExpenses  || 0;
-    const totalTransfers = taxiStats.totalTransfers || 0;
 
-    // ── 4-WALLET BREAKDOWN (الحسابة الصحيحة) ──────────────────────────────
-    //
-    // المنطق:
-    // ● البيانات القديمة (لا يوجد transferType): مكافأة شركة استلمتها من زين كاش إلى يدك مباشرة
-    //   → صافي الربح يشملها (تم إصلاحه في calculator.js)
-    //   → زين كاش: صفر (دخلت وخرجت في نفس الوقت)
-    //   → رصيد بلي: كان يُطرح منه خطأً → نعيده
-    //   → النقد: موجود فعلاً (cashInHand يشمله بالفعل)
-    //
-    // ● البيانات الجديدة (zain_bonus): مكافأة لا تزال في زين كاش لم تُسحب
-    //   → تُضاف لزين كاش
-    //   → تُطرح من النقد (لم تصل لليد بعد)
-    //
-    // الإثبات الرياضي: نقد + زين كاش + رصيد بلي + وقود = صافي الربح ✓
+    const allTransfersSum       = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
+    const totalCompanyBonuses   = allBonuses.reduce((s,b) => s+(b.amount||0), 0);
+    const fuelConsumed          = fuelData.totalConsumed;
+    const fuelTopupsPaid        = fuelData.totalPaid;
 
-    const allTransfersSum    = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
-    const newZainBonuses     = allTransfers.filter(t => t.transferType === 'zain_bonus').reduce((s,t) => s+(t.amount||0), 0);
-    const totalFuelTopups    = fuelData.totalPaid;
-    const fuelConsumed       = fuelData.totalConsumed;
+    // ── صافي الأرباح الحقيقي ──────────────────────────────
+    // taxiStats.netProfit يشمل: أجور + زيادات + تحويلات قديمة - نسبة بلي - مصاريف (من calculator.js)
+    // نضيف: مكافآت الشركة الجديدة - تكلفة الوقود المستهلك
+    const adjustedNetProfit = (taxiStats.netProfit || 0) + totalCompanyBonuses - fuelConsumed;
 
-    // 💰 صافي الربح المعدّل:
-    // calculator.js يشمل allTransfers في netProfit (تم الإصلاح)
-    // نطرح منه تكلفة الوقود المستهلك (غير محسوبة في calculator لأنها في جدول منفصل)
-    const adjustedNetProfit = netProfit - fuelConsumed;
+    // ── النقد بيدك ────────────────────────────────────────
+    // taxiStats.cashInHand = كاش رحلات + زيادات - مصاريف + تحويلات قديمة (من calculator)
+    // نطرح: فاتورة شحن الوقود (ذهبت لمحفظة الوقود)
+    // ملاحظة: مكافآت الشركة لا تذهب لجيبك مباشرة، تذهب لبلي/زين كاش
+    const cashInHand = (taxiStats.cashInHand || 0) - fuelTopupsPaid;
 
-    // 💵 النقد بيدك:
-    // taxiStats.cashInHand يشمل بالفعل: +كاش رحلات +زيادات -مصاريف +كل التحويلات
-    // نطرح: المبالغ التي لم تصل لليد فعلاً
-    //   - newZainBonuses: مكافآت جديدة لا تزال في زين كاش
-    //   - totalFuelTopups: دفعتها للمحطة (ذهبت لمحفظة الوقود)
-    const adjustedCash = (taxiStats.cashInHand || 0) - newZainBonuses - totalFuelTopups;
+    // ── رصيد بلي ──────────────────────────────────────────
+    // إذا سجّل المستخدم رصيده من التطبيق → استخدم تلك اللقطة
+    // وإلا → احسب بالطريقة القديمة (للتوافق مع البيانات القديمة)
+    const latestBalySnap = allBalySnaps.length > 0
+      ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0]
+      : null;
+    const balyBalance = latestBalySnap !== null
+      ? (latestBalySnap.balance || 0)
+      : ((taxiStats.appBalance || 0) + allTransfersSum);
 
-    // 💳 زين كاش:
-    // البيانات القديمة (بدون نوع): صفر (دخلت وخرجت إلى النقد مباشرة)
-    // المكافآت الجديدة (zain_bonus): لا تزال في زين كاش
-    const zainCashBalance = newZainBonuses;
+    // ── زين كاش (محسوب تلقائياً) ──────────────────────────
+    // زين كاش = صافي الربح - كاش - رصيد بلي - محفظة الوقود
+    const fuelWalletBalance = fuelData.balance; // = fuelTopupsPaid - fuelConsumed
+    const zainCashBalance   = adjustedNetProfit - cashInHand - balyBalance - fuelWalletBalance;
 
-    // 📱 رصيد بلي:
-    // calculator.js كان يطرح جميع التحويلات من رصيد بلي (خطأ - هي من زين كاش وليس من بلي)
-    // appBalance = (فارق الأجرة) - نسبة بلي - كل التحويلات ← نعيد التحويلات
-    const correctedBalyBalance = appBalance + allTransfersSum;
-
-    // ⛽ محفظة الوقود:
-    const fuelWalletBalance = fuelData.balance; // = totalPaid - fuelConsumed
-
-
-    // 2. قراءة كل الصناديق
-    const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
-
-    // 3. مصاريف المحفظة (الصرف من الصناديق)
-    const totalWalletExpenses = txs
-      .filter(t => t.type === 'envelope_expense')
-      .reduce((s, t) => s + t.amount, 0);
-
-    // 4. الرصيد الصافي المتاح بعد مصاريف المحفظة
+    // ── صناديق الأموال ─────────────────────────────────────
+    const totalInEnvelopes    = envelopes.reduce((s,e) => s+(e.balance||0), 0);
+    const totalWalletExpenses = txs.filter(t=>t.type==='envelope_expense').reduce((s,t)=>s+t.amount,0);
     const currentPhysicalCash = adjustedNetProfit - totalWalletExpenses;
-
-    // 5. الرصيد الحر (غير الموزع على الصناديق)
-    const unallocated = currentPhysicalCash - totalInEnvelopes;
+    const unallocated         = currentPhysicalCash - totalInEnvelopes;
 
     return {
-      netProfit: adjustedNetProfit,
-      appBalance: correctedBalyBalance,
-      totalExpenses,
-      totalTransfers,
-      currentPhysicalCash,
-      totalInEnvelopes,
-      unallocated,
-      envelopes,
-      // للتوافق مع الكود القديم
-      totalTaxiCash: adjustedNetProfit,
-      // NEW v3.0 wallet breakdown:
-      cashInHand:       adjustedCash,
+      netProfit:        adjustedNetProfit,
+      appBalance:       balyBalance,
+      balyBalance,
+      cashInHand,
       zainCashBalance,
-      balyBalance:      correctedBalyBalance,
       fuelWalletBalance,
       fuelData,
+      totalInEnvelopes,
+      unallocated,
+      currentPhysicalCash,
+      envelopes,
+      totalTaxiCash:      adjustedNetProfit,
+      totalExpenses:      taxiStats.totalExpenses || 0,
+      totalTransfers:     allTransfersSum,
+      totalCompanyBonuses,
+      latestBalySnap,
+      hasBalySnapshot:    latestBalySnap !== null,
     };
   },
 

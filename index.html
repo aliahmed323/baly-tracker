@@ -203,22 +203,25 @@
           <div class="v3wc-label">نقد بيدي</div>
           <div class="v3wc-value" id="w3-cash">0</div>
         </div>
-        <div class="v3-wallet-card zain">
-          <div class="v3wc-icon">💳</div>
-          <div class="v3wc-label">زين كاش</div>
-          <div class="v3wc-value" id="w3-zain">0</div>
-        </div>
-        <div class="v3-wallet-card baly">
-          <div class="v3wc-icon">📱</div>
+        <!-- Card 3: Baly (now clickable) -->
+        <div class="v3-wallet-card baly fade-up" style="animation-delay: 0.15s" onclick="App.openBalyBalance()">
+          <div class="v3wc-icon" style="color:#818cf8;background:rgba(99,102,241,0.1)">📱</div>
           <div class="v3wc-label">رصيد بلي</div>
           <div class="v3wc-value" id="w3-baly">0</div>
+          <div class="v3wc-sub" id="w3-baly-hint"></div>
         </div>
-        <div class="v3-wallet-card fuel">
-          <div class="v3wc-icon">⛽</div>
+        <!-- Card 4: Fuel -->
+        <div class="v3-wallet-card fade-up" style="animation-delay: 0.2s">
+          <div class="v3wc-icon" style="color:var(--success);background:rgba(34,197,94,0.1)">⛽</div>
           <div class="v3wc-label">محفظة الوقود</div>
           <div class="v3wc-value" id="w3-fuel">0</div>
           <div class="v3wc-sub" id="w3-fuel-km"></div>
         </div>
+      </div>
+      
+      <!-- إجمالي المكافآت -->
+      <div style="text-align:center; font-size:12px; color:var(--primary); margin-bottom:12px;" id="w5-total-bonuses-wrap">
+        مكافآت الشركة: <span id="w5-total-bonuses">0</span>
       </div>
 
       <!-- ── ملخص اليوم ── -->
@@ -268,8 +271,18 @@
 
       <!-- ── شحن محفظة الوقود ── -->
       <button class="v3-fuel-topup-btn" onclick="App.openFuelTopup()">
-        ⛽ شحن محفظة الوقود (دفع للمحطة)
+        شحن محفظة الوقود ⛽
       </button>
+
+      <!-- ── أدوات v5.0 ── -->
+      <div class="v5-action-row">
+        <button class="v5-action-btn bonus" onclick="App.openCompanyBonus()">
+          🎁 مكافأة شركة
+        </button>
+        <button class="v5-action-btn baly" onclick="App.openBalyBalance()">
+          📱 رصيد بلي
+        </button>
+      </div>
 
       <!-- ── اقتراح العزل اليومي ── -->
       <div class="section-header" id="w-suggestions-header" style="display:none">
@@ -525,6 +538,16 @@
         <div class="numpad-currency">دينار عراقي</div>
       </div>
 
+      <div id="numpad-extra-row" style="display:none; padding: 0 16px 8px; flex-direction: column; gap: 8px;">
+        <div id="numpad-date-container" style="display:none">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">التاريخ (افتراضي: اليوم)</div>
+          <input class="edit-input" id="numpad-date" type="date">
+        </div>
+        <div id="numpad-note-container" style="display:none">
+          <input class="edit-input" id="numpad-note" type="text" placeholder="ملاحظة / تفاصيل..." style="font-size:14px;">
+        </div>
+      </div>
+
       <div class="numpad">
         <button class="numpad-btn" onclick="App.numpad('7')" id="np-7">7</button>
         <button class="numpad-btn" onclick="App.numpad('8')" id="np-8">8</button>
@@ -647,6 +670,57 @@
   </div>
 
 
+  <!-- ⑬ مكافأة الشركة -->
+  <div id="modal-company-bonus" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🎁 مكافأة الشركة</div>
+      <div class="edit-group">
+        <div class="edit-label">مبلغ المكافأة (دينار)</div>
+        <input class="edit-input" id="comp-bonus-amount" type="number" inputmode="numeric" placeholder="11000">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">التاريخ</div>
+        <input class="edit-input" id="comp-bonus-date" type="date">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">ملاحظة (اختياري)</div>
+        <input class="edit-input" id="comp-bonus-note" type="text" placeholder="مكافأة شهر يوليو...">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveCompanyBonus()">
+          🎁 تسجيل المكافأة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑭ رصيد بلي -->
+  <div id="modal-baly-snapshot" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📱 تسجيل رصيد بلي</div>
+      <p style="text-align:center; color:var(--text-muted); font-size:13px; margin: 0 16px 16px;">أدخل الرصيد كما يظهر في تطبيق بلي (يمكن أن يكون سالباً)</p>
+      <div class="edit-group">
+        <div class="edit-label">رصيد بلي الحالي (دينار)</div>
+        <input class="edit-input" id="baly-snap-balance" type="number" inputmode="numeric" placeholder="-4900 أو 1500">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">التاريخ</div>
+        <input class="edit-input" id="baly-snap-date" type="date">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">ملاحظة (اختياري)</div>
+        <input class="edit-input" id="baly-snap-note" type="text" placeholder="نهاية يوم العمل...">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveBalyBalance()">
+          📱 حفظ الرصيد
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ⑫ شحن محفظة الوقود -->
   <div id="modal-fuel-topup" class="modal-overlay" onclick="if(event.target===this)App.close()">
     <div class="modal-sheet" role="dialog">
@@ -753,6 +827,6 @@
 </div><!-- /app -->
 
 <!-- JavaScript — ES Modules -->
-<script type="module" src="./src/app.js?v=3.0.0"></script>
+<script type="module" src="./src/app.js?v=5.0.0"></script>
 </body>
 </html>

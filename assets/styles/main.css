@@ -1843,3 +1843,42 @@ input, textarea, button {
   transition: background var(--t-fast);
 }
 .v3-fuel-topup-btn:active { background: rgba(239,68,68,0.18); }
+
+/* ===== v5.0 STYLES ===== */
+
+.v5-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 16px 16px;
+}
+
+.v5-action-btn {
+  padding: 13px 8px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity var(--t-fast);
+}
+.v5-action-btn:active { opacity: 0.7; }
+.v5-action-btn.bonus {
+  background: rgba(245,158,11,0.15);
+  color: var(--primary);
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.v5-action-btn.baly {
+  background: rgba(99,102,241,0.12);
+  color: #818cf8;
+  border: 1px solid rgba(99,102,241,0.3);
+}
+
+/* Baly card clickable */
+.v3-wallet-card.baly { cursor: pointer; }
+.v3-wallet-card.baly:active { transform: scale(0.95); }

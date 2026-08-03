@@ -187,5 +187,37 @@ export const Database = {
 
   async deleteDailyKm(id) {
     await remove(ref(db, `daily_km/${id}`));
+  },
+
+  // ── COMPANY BONUSES ────────────────────────────
+  async addCompanyBonus(data) {
+    const newRef = push(ref(db, 'company_bonuses'));
+    await set(newRef, data);
+    return { ...data, id: newRef.key };
+  },
+
+  async getAllCompanyBonuses() {
+    const snap = await get(ref(db, 'company_bonuses'));
+    return toArray(snap);
+  },
+
+  async deleteCompanyBonus(id) {
+    await remove(ref(db, `company_bonuses/${id}`));
+  },
+
+  // ── BALY BALANCE SNAPSHOTS ──────────────────────
+  async addBalySnapshot(data) {
+    const newRef = push(ref(db, 'baly_snapshots'));
+    await set(newRef, data);
+    return { ...data, id: newRef.key };
+  },
+
+  async getAllBalySnapshots() {
+    const snap = await get(ref(db, 'baly_snapshots'));
+    return toArray(snap);
+  },
+
+  async deleteBalySnapshot(id) {
+    await remove(ref(db, `baly_snapshots/${id}`));
   }
 };

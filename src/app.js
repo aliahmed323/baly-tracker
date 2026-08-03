@@ -228,6 +228,26 @@ function openNumpad(mode) {
   const title = $('#numpad-title');
   if (title) title.textContent = NUMPAD_TITLES[mode] || 'أدخل المبلغ';
 
+  const extraRow = $('#numpad-extra-row');
+  const dateContainer = $('#numpad-date-container');
+  const noteContainer = $('#numpad-note-container');
+  
+  if (extraRow && dateContainer && noteContainer) {
+    if (mode === 'expense') {
+      extraRow.style.display = 'flex';
+      dateContainer.style.display = 'none';
+      noteContainer.style.display = 'block';
+      if ($('#numpad-note')) $('#numpad-note').value = '';
+    } else if (mode === 'zaincash') {
+      extraRow.style.display = 'flex';
+      dateContainer.style.display = 'block';
+      noteContainer.style.display = 'none';
+      if ($('#numpad-date')) $('#numpad-date').value = Formatter.todayKey();
+    } else {
+      extraRow.style.display = 'none';
+    }
+  }
+
   openModal('numpad');
 }
 
@@ -309,8 +329,10 @@ function pickExpenseCategory(catId) {
 
 async function saveExpense(amount) {
   if (!S.expenseCat) return;
-  await Expenses.add({ category: S.expenseCat, amount });
+  const note = $('#numpad-note')?.value?.trim() || '';
+  await Expenses.add({ category: S.expenseCat, amount, note });
   S.expenseCat = null;
+  if ($('#numpad-note')) $('#numpad-note').value = '';
   await refreshHomeStats();
   if (S.screen === 'today') renderToday();
   flashToast('✅ تم حفظ المصروف', '');
@@ -324,7 +346,8 @@ function openZainCashModal() {
 }
 
 async function saveTransfer(amount) {
-  await Transfers.add({ amount });
+  const date = $('#numpad-date')?.value || Formatter.todayKey();
+  await Transfers.add({ amount, date });
   await refreshHomeStats();
   if (S.screen === 'today') renderToday();
   flashToast('💳 تم حفظ التحويل', '');
@@ -859,17 +882,38 @@ async function renderWallet() {
   ]);
   const today = todayData.stats;
 
-  // v3.0 — 4 wallet breakdown
+  // v5.0 — Zain Cash is now DERIVED
   setEl('#w3-cash', Formatter.num(walletStats.cashInHand || 0));
-  setEl('#w3-zain', Formatter.num(walletStats.zainCashBalance || 0));
   setEl('#w3-baly', Formatter.num(walletStats.balyBalance || 0));
+  setEl('#w3-zain', Formatter.num(walletStats.zainCashBalance || 0));
   setEl('#w3-fuel', Formatter.num(walletStats.fuelWalletBalance || 0));
   
+  // Color for baly (can be negative)
+  const balyEl = $('#w3-baly');
+  if (balyEl) balyEl.style.color = (walletStats.balyBalance || 0) >= 0 ? 'var(--primary)' : 'var(--danger)';
+  
+  // Color for zain (should be positive usually)
+  const zainEl = $('#w3-zain');
+  if (zainEl) zainEl.style.color = (walletStats.zainCashBalance || 0) >= 0 ? '#60a5fa' : 'var(--danger)';
+  
+  // Fuel color
   const fuelEl = $('#w3-fuel');
   if (fuelEl) fuelEl.style.color = (walletStats.fuelWalletBalance || 0) >= 0 ? 'var(--success)' : 'var(--danger)';
   
   const fuelData = walletStats.fuelData || {};
   setEl('#w3-fuel-km', fuelData.totalKm ? `${Formatter.num(fuelData.totalKm)} كم مقطوعة` : '');
+  
+  // Baly snapshot info
+  const balyHint = $('#w3-baly-hint');
+  if (balyHint) {
+    balyHint.textContent = walletStats.hasBalySnapshot 
+      ? `📅 ${walletStats.latestBalySnap?.date || ''}` 
+      : '⚠️ أدخل رصيد بلي';
+    balyHint.style.color = walletStats.hasBalySnapshot ? 'var(--text-muted)' : 'var(--danger)';
+  }
+  
+  // Company bonuses
+  setEl('#w5-total-bonuses', walletStats.totalCompanyBonuses > 0 ? `+${Formatter.num(walletStats.totalCompanyBonuses)}` : '0');
   
   // Load today's fuel price
   const fuelPrice = await Settings.get(KEYS.FUEL_PRICE) || 750;
@@ -1238,6 +1282,130 @@ async function saveFuelTopup() {
     alert('خطأ: ' + e.message);
   }
 }
+
+// ── v5.0: مكافأة الشركة ────────────────────────────
+
+function openCompanyBonus() {
+  const today = Formatter.todayKey();
+  const el = $('#comp-bonus-date');
+  if (el) el.value = today;
+  if ($('#comp-bonus-amount')) $('#comp-bonus-amount').value = '';
+  if ($('#comp-bonus-note')) $('#comp-bonus-note').value = '';
+  openModal('company-bonus');
+  setTimeout(() => $('#comp-bonus-amount')?.focus(), 300);
+}
+
+async function saveCompanyBonus() {
+  const amount = Number($('#comp-bonus-amount')?.value);
+  const date   = $('#comp-bonus-date')?.value || Formatter.todayKey();
+  const note   = $('#comp-bonus-note')?.value?.trim() || '';
+  if (!amount || amount <= 0) { alert('يرجى إدخال مبلغ المكافأة'); return; }
+  try {
+    await Bonuses.add({ amount, date, note });
+    closeModal('company-bonus');
+    flashToast(`🎁 تم تسجيل مكافأة ${Formatter.num(amount)} دينار`, '');
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) { alert('خطأ: ' + e.message); }
+}
+
+// ── v5.0: رصيد بلي ─────────────────────────────────
+
+function openBalyBalance() {
+  const today = Formatter.todayKey();
+  const el = $('#baly-snap-date');
+  if (el) el.value = today;
+  if ($('#baly-snap-balance')) $('#baly-snap-balance').value = '';
+  if ($('#baly-snap-note')) $('#baly-snap-note').value = '';
+  openModal('baly-snapshot');
+  setTimeout(() => $('#baly-snap-balance')?.focus(), 300);
+}
+
+async function saveBalyBalance() {
+  const raw     = $('#baly-snap-balance')?.value?.trim();
+  const balance = Number(raw);
+  const date    = $('#baly-snap-date')?.value || Formatter.todayKey();
+  const note    = $('#baly-snap-note')?.value?.trim() || '';
+  if (raw === '' || raw === undefined) { alert('يرجى إدخال رصيد بلي (يمكن أن يكون سالباً)'); return; }
+  try {
+    await BalyBalance.record({ balance, date, note });
+    closeModal('baly-snapshot');
+    flashToast(`📱 تم تسجيل رصيد بلي: ${Formatter.num(balance)} دينار`, '');
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) { alert('خطأ: ' + e.message); }
+}
+
+window.App = {
+  // Navigation
+  nav:        (scr) => nav(scr),
+  
+  // Today's trips
+  addTrip:    (paymentType) => addTrip(paymentType),
+  pickExtra:  (val) => pickExtra(val),
+  pickBonus:  (val) => pickBonus(val),
+  setTripDate:(d)  => setTripDate(d),
+  openDayAddTrip: (d) => openDayAddTrip(d),
+
+  // نامباد
+  numpad:     (k)  => numpadPress(k),
+
+  // مصاريف وتحويلات
+  openExpense: ()       => openExpenseModal(),
+  pickCat:    (id)     => pickExpenseCategory(id),
+  openZain:   ()       => openZainCashModal(),
+
+  // وقود تلقائي
+  openFuel:     () => openFuel(),
+  saveAutoFuel: () => saveAutoFuel(),
+
+  // المحفظة
+  openFuelTopup: () => openFuelTopup(),
+  saveFuelTopup: () => saveFuelTopup(),
+  saveDailyKm:   () => saveDailyKm(),
+  newEnvelope:        () => newEnvelope(),
+  pickEnvEmoji:   (e)    => pickEnvEmoji(e),
+  calcDailyTarget:()     => calcDailyTarget(),
+  saveNewEnvelope:()     => saveNewEnvelope(),
+  openTransferEnv:    (id) => openTransferEnv(id),
+  confirmTransferEnv: () => confirmTransferEnv(),
+  openExpenseEnv:     (id) => openExpenseEnv(id),
+  confirmExpenseEnv:  () => confirmExpenseEnv(),
+  openEnvDetails:     (id) => openEnvDetails(id),
+  deleteEnvTransaction: (txId, envId) => deleteEnvTransaction(txId, envId),
+
+  // حذف مباشر من البطاقات
+  deleteExpenseItem:  (id) => deleteExpenseItem(id),
+  deleteTransferItem: (id) => deleteTransferItem(id),
+
+  // Toast
+  editLast:   ()   => { if (S.lastTripId) { hideToast(); openEditTrip(S.lastTripId); } },
+  undoLast:   ()   => undoLastTrip(),
+  hideToast:  ()   => hideToast(),
+
+  // تعديل
+  editTrip:   (id) => openEditTrip(id),
+  saveEdit:   ()   => saveEditTrip(),
+  deleteTrip: ()   => deleteEditTrip(),
+
+  // سجل
+  openDay:    (d)      => openDay(d),
+  openMonth:  (y, m)   => openMonth(y, m),
+  backHistory:()       => backHistory(),
+  switchTab:  (t)      => switchTab(t),
+
+  // إعدادات
+  changePercent: () => changePercent(),
+  changeFuelPrice: () => changeFuelPrice(),
+  exportBackup:  () => exportBackup(),
+
+  // v5.0
+  openCompanyBonus: () => openCompanyBonus(),
+  saveCompanyBonus: () => saveCompanyBonus(),
+  openBalyBalance:  () => openBalyBalance(),
+  saveBalyBalance:  () => saveBalyBalance(),
+
+  // إغلاق النوافذ
+  close: () => closeAllModals(),
+};
 
 async function saveDailyKm() {
   const km     = Number($('#km-input')?.value);
