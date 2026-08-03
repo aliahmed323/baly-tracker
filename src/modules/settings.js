@@ -8,8 +8,9 @@ export const KEYS = {
   APP_PERCENT:    'app_percent',
   PRICE_BUTTONS:  'price_buttons',
   APP_NAME:       'app_name',
-  FUEL_PRICE:     'fuel_price',
+  FUEL_PRICE:     'fuelPricePerLiter',
 };
+
 
 export const DEFAULTS = {
   [KEYS.APP_PERCENT]:   15,

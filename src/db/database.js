@@ -155,5 +155,37 @@ export const Database = {
 
   async deleteHomeExpense(id) {
     await remove(ref(db, `home_expenses/${id}`));
+  },
+
+  // ── FUEL TOPUPS ────────────────────────────────
+  async addFuelTopup(data) {
+    const newRef = push(ref(db, 'fuel_topups'));
+    await set(newRef, data);
+    return { ...data, id: newRef.key };
+  },
+
+  async getAllFuelTopups() {
+    const snap = await get(ref(db, 'fuel_topups'));
+    return toArray(snap);
+  },
+
+  async deleteFuelTopup(id) {
+    await remove(ref(db, `fuel_topups/${id}`));
+  },
+
+  // ── DAILY KM RECORDS ───────────────────────────
+  async addDailyKm(data) {
+    const newRef = push(ref(db, 'daily_km'));
+    await set(newRef, data);
+    return { ...data, id: newRef.key };
+  },
+
+  async getAllDailyKm() {
+    const snap = await get(ref(db, 'daily_km'));
+    return toArray(snap);
+  },
+
+  async deleteDailyKm(id) {
+    await remove(ref(db, `daily_km/${id}`));
   }
 };

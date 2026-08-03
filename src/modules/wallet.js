@@ -5,6 +5,8 @@
 import { Database } from '../db/database.js';
 import { Reports }  from './reports.js';
 import { Formatter } from '../utils/formatter.js';
+import { FuelWallet } from './fuelWallet.js';
+
 
 export const Wallet = {
 
@@ -136,31 +138,53 @@ export const Wallet = {
 
   async getStats() {
     // 1. كل إحصائيات التكسي (الكلية من كل الأوقات)
-    const taxiStats = await Reports.getAllTimeStats();
+    const [taxiStats, envelopes, txs, fuelData, allTransfers, allTopups] = await Promise.all([
+      Reports.getAllTimeStats(),
+      this.getEnvelopes(),
+      Database.getAllWalletTransactions(),
+      FuelWallet.getBalance(),
+      Database.getAllTransfers(),
+      Database.getAllFuelTopups(),
+    ]);
     
     const netProfit      = taxiStats.netProfit      || 0; // صافي الأرباح الحقيقي
     const appBalance     = taxiStats.appBalance     || 0; // رصيد بلي الذي لم يُسحب
     const totalExpenses  = taxiStats.totalExpenses  || 0;
     const totalTransfers = taxiStats.totalTransfers || 0;
 
+    // ── 4-WALLET BREAKDOWN ──
+    // Zain Cash: bonuses (type=zain_bonus) minus withdrawals (type=zain_withdraw or no type)
+    const zainBonuses     = allTransfers.filter(t => t.transferType === 'zain_bonus').reduce((s,t) => s+(t.amount||0), 0);
+    const zainWithdrawals = allTransfers.filter(t => !t.transferType || t.transferType === 'zain_withdraw').reduce((s,t) => s+(t.amount||0), 0);
+    const zainDeposits    = allTransfers.filter(t => t.transferType === 'zain_deposit').reduce((s,t) => s+(t.amount||0), 0);
+    const zainCashBalance = zainBonuses - zainWithdrawals + zainDeposits;
+
+    // Add zain cash company bonuses to net profit (they're not in trips table)
+    const adjustedNetProfit = netProfit + zainBonuses;
+
+    // Fuel wallet (from FuelWallet.getBalance())
+    const fuelWalletBalance = fuelData.balance;
+    const totalFuelTopups   = fuelData.totalPaid;
+
+    // Cash in hand: cash received + extras - expenses - fuel topups + withdrawals from zain - deposits to zain
+    const adjustedCash = (taxiStats.cashInHand || 0) - zainBonuses - totalFuelTopups;
+
     // 2. قراءة كل الصناديق
-    const envelopes = await this.getEnvelopes();
     const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
 
     // 3. مصاريف المحفظة (الصرف من الصناديق)
-    const txs = await Database.getAllWalletTransactions();
     const totalWalletExpenses = txs
       .filter(t => t.type === 'envelope_expense')
       .reduce((s, t) => s + t.amount, 0);
 
     // 4. الرصيد الصافي المتاح بعد مصاريف المحفظة
-    const currentPhysicalCash = netProfit - totalWalletExpenses;
+    const currentPhysicalCash = adjustedNetProfit - totalWalletExpenses;
 
     // 5. الرصيد الحر (غير الموزع على الصناديق)
     const unallocated = currentPhysicalCash - totalInEnvelopes;
 
     return {
-      netProfit,
+      netProfit: adjustedNetProfit,
       appBalance,
       totalExpenses,
       totalTransfers,
@@ -169,7 +193,13 @@ export const Wallet = {
       unallocated,
       envelopes,
       // للتوافق مع الكود القديم
-      totalTaxiCash: netProfit,
+      totalTaxiCash: adjustedNetProfit,
+      // NEW v3.0 wallet breakdown:
+      cashInHand:       adjustedCash,
+      zainCashBalance,
+      balyBalance:      appBalance,
+      fuelWalletBalance,
+      fuelData,
     };
   },
 

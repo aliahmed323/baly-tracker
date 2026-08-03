@@ -1703,3 +1703,143 @@ input, textarea, button {
   font-size: 12px;
   font-weight: 800;
 }
+
+/* ===== v3.0 WALLET CARDS ===== */
+
+.v3-wallets-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 16px 16px;
+}
+
+.v3-wallet-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 12px;
+  text-align: center;
+  transition: transform var(--t-fast);
+}
+.v3-wallet-card:active { transform: scale(0.97); }
+.v3-wallet-card.cash  { border-color: rgba(34,197,94,0.3); }
+.v3-wallet-card.zain  { border-color: rgba(59,130,246,0.3); }
+.v3-wallet-card.baly  { border-color: rgba(245,158,11,0.3); }
+.v3-wallet-card.fuel  { border-color: rgba(239,68,68,0.3); }
+
+.v3wc-icon  { font-size: 22px; margin-bottom: 4px; }
+.v3wc-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+.v3wc-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  direction: ltr;
+  display: inline-block;
+}
+.v3-wallet-card.cash  .v3wc-value { color: var(--success); }
+.v3-wallet-card.zain  .v3wc-value { color: #60a5fa; }
+.v3-wallet-card.baly  .v3wc-value { color: var(--primary); }
+.v3wc-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* KM tracking card */
+.v3-km-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin: 0 16px 10px;
+  padding: 14px;
+}
+
+.v3-km-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.v3-km-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.v3-km-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.v3-km-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  width: 100%;
+}
+.v3-km-input:focus { border-color: var(--primary); }
+
+.v3-km-cost {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.v3-km-save-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--primary-glow);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.v3-km-save-btn:active { background: rgba(245,158,11,0.3); }
+
+.v3-km-today {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 8px;
+  min-height: 18px;
+}
+
+.v3-fuel-topup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
+  padding: 13px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-sm);
+  color: #f87171;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.v3-fuel-topup-btn:active { background: rgba(239,68,68,0.18); }

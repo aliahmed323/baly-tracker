@@ -8,6 +8,8 @@ import { Transfers } from './transfers.js';
 import { Settings, KEYS } from './settings.js';
 import { Calculator } from '../utils/calculator.js';
 import { Formatter }  from '../utils/formatter.js';
+import { FuelWallet } from './fuelWallet.js';
+
 
 async function getPercent() {
   return Settings.get(KEYS.APP_PERCENT);
@@ -62,7 +64,11 @@ export const Reports = {
 
   /** جميع الأيام التي تحتوي على بيانات (للسجل) */
   async getAllDays() {
-    const [dates, pct] = await Promise.all([Trips.getAllDates(), getPercent()]);
+    const [dates, pct, dailyRecords] = await Promise.all([
+      Trips.getAllDates(), 
+      getPercent(),
+      FuelWallet.getAllDailyRecords(),
+    ]);
     if (!dates.length) return [];
 
     return Promise.all(
@@ -72,8 +78,12 @@ export const Reports = {
           Expenses.getByDate(dateKey),
           Transfers.getByDate(dateKey),
         ]);
+        
+        const dayKm = dailyRecords.filter(r => r.date === dateKey).reduce((s, r) => s + (r.km || 0), 0);
+        
         return {
           date: dateKey,
+          totalKm: dayKm,
           stats: Calculator.dayStats(trips, expenses, transfers, pct),
         };
       })
@@ -82,7 +92,11 @@ export const Reports = {
 
   /** جميع الأشهر التي تحتوي على بيانات */
   async getAllMonths() {
-    const [monthGroups, pct] = await Promise.all([Trips.getMonthGroups(), getPercent()]);
+    const [monthGroups, pct, dailyRecords] = await Promise.all([
+      Trips.getMonthGroups(), 
+      getPercent(),
+      FuelWallet.getAllDailyRecords(),
+    ]);
     if (!monthGroups.length) return [];
 
     return Promise.all(
@@ -92,8 +106,13 @@ export const Reports = {
           Expenses.getByMonth(year, month),
           Transfers.getByMonth(year, month),
         ]);
+        
+        const prefix = `${year}-${String(month).padStart(2, '0')}`;
+        const monthKm = dailyRecords.filter(r => r.date?.startsWith(prefix)).reduce((s, r) => s + (r.km || 0), 0);
+
         return {
           year, month, key,
+          totalKm: monthKm,
           stats: Calculator.monthStats(trips, expenses, transfers, pct),
         };
       })

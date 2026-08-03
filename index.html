@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="./assets/styles/main.css?v=2.0.0i">
+  <link rel="stylesheet" href="./assets/styles/main.css?v=3.0.0">
 </head>
 
 <body>
@@ -179,21 +179,49 @@
   </div><!-- /screen-history -->
 
 
-  <!-- ④ شاشة المحفظة (Wallet) -->
+  <!-- ④ شاشة المحفظة (Wallet) v3.0 -->
   <div id="screen-wallet" class="screen">
     <div class="screen-header">
       <h1>المحفظة 💼</h1>
     </div>
     <div class="screen-content">
 
-      <!-- صافي الأرباح الكلية -->
+      <!-- ── Hero: صافي الأرباح ── -->
       <div class="wallet-hero-card">
         <div class="whc-label">💰 صافي أرباحك الكلية</div>
         <div class="whc-value" id="wallet-total-cash">0</div>
         <div class="whc-sub">دينار عراقي</div>
       </div>
 
-      <!-- ملخص اليوم -->
+      <!-- ── توزيع أماكن الأموال ── -->
+      <div class="section-header">
+        <div class="section-title">📍 أين أموالك؟</div>
+      </div>
+      <div class="v3-wallets-grid">
+        <div class="v3-wallet-card cash">
+          <div class="v3wc-icon">💵</div>
+          <div class="v3wc-label">نقد بيدي</div>
+          <div class="v3wc-value" id="w3-cash">0</div>
+        </div>
+        <div class="v3-wallet-card zain">
+          <div class="v3wc-icon">💳</div>
+          <div class="v3wc-label">زين كاش</div>
+          <div class="v3wc-value" id="w3-zain">0</div>
+        </div>
+        <div class="v3-wallet-card baly">
+          <div class="v3wc-icon">📱</div>
+          <div class="v3wc-label">رصيد بلي</div>
+          <div class="v3wc-value" id="w3-baly">0</div>
+        </div>
+        <div class="v3-wallet-card fuel">
+          <div class="v3wc-icon">⛽</div>
+          <div class="v3wc-label">محفظة الوقود</div>
+          <div class="v3wc-value" id="w3-fuel">0</div>
+          <div class="v3wc-sub" id="w3-fuel-km"></div>
+        </div>
+      </div>
+
+      <!-- ── ملخص اليوم ── -->
       <div class="section-header">
         <div class="section-title">📅 ملخص اليوم</div>
       </div>
@@ -211,18 +239,45 @@
           <div class="stat-value danger" id="w-today-exp">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">✅ صافي ربحك اليوم</div>
+          <div class="stat-label">✅ صافي اليوم</div>
           <div class="stat-value success" id="w-today-net">0</div>
         </div>
       </div>
 
-      <!-- اقتراح العزل اليومي -->
+      <!-- ── تسجيل الكيلومترات اليومية ── -->
+      <div class="section-header">
+        <div class="section-title">🛣️ تسجيل كيلومترات اليوم</div>
+      </div>
+      <div class="v3-km-card">
+        <div class="v3-km-row">
+          <div class="v3-km-field">
+            <label class="v3-km-label">الكيلومترات</label>
+            <input class="v3-km-input" id="km-input" type="number" inputmode="decimal" placeholder="100">
+          </div>
+          <div class="v3-km-field">
+            <label class="v3-km-label">اللترات</label>
+            <input class="v3-km-input" id="liters-input" type="number" inputmode="decimal" placeholder="6">
+          </div>
+        </div>
+        <div class="v3-km-cost" id="km-cost-preview">سعر الوقود: <span id="km-fuel-price">750</span> د.ع/لتر</div>
+        <button class="v3-km-save-btn" onclick="App.saveDailyKm()">
+          🛣️ تسجيل الاستهلاك اليومي
+        </button>
+        <div class="v3-km-today" id="v3-km-today"></div>
+      </div>
+
+      <!-- ── شحن محفظة الوقود ── -->
+      <button class="v3-fuel-topup-btn" onclick="App.openFuelTopup()">
+        ⛽ شحن محفظة الوقود (دفع للمحطة)
+      </button>
+
+      <!-- ── اقتراح العزل اليومي ── -->
       <div class="section-header" id="w-suggestions-header" style="display:none">
         <div class="section-title">💡 ما تعزله اليوم</div>
       </div>
       <div id="wallet-suggestions" style="margin: 0 16px;"></div>
 
-      <!-- الحر المتبقي -->
+      <!-- ── الحر المتبقي ── -->
       <div id="w-free-wrap" style="display:none; margin: 8px 16px;">
         <div class="wallet-free-row">
           <span class="wallet-free-label">💵 الحر لليوم بعد العزل</span>
@@ -230,7 +285,7 @@
         </div>
       </div>
 
-      <!-- الصناديق -->
+      <!-- ── الصناديق ── -->
       <div class="section-header">
         <div class="section-title">صناديق الأموال</div>
         <span class="section-badge" id="w-unallocated-badge"></span>
@@ -273,6 +328,18 @@
         </div>
 
         <div class="settings-card">
+          <div class="settings-item" onclick="App.changeFuelPrice()" id="settings-fuel-row">
+            <div class="settings-icon">⛽</div>
+            <div class="settings-info">
+              <div class="settings-title">سعر البنزين (لتر)</div>
+              <div class="settings-subtitle">يستخدم لحساب تكلفة الكيلومترات</div>
+            </div>
+            <div class="settings-value" id="settings-fuel">750 د.ع</div>
+            <div class="settings-arrow">‹</div>
+          </div>
+        </div>
+
+        <div class="settings-card">
           <div class="settings-item" onclick="App.exportBackup()" id="settings-export-row">
             <div class="settings-icon">📦</div>
             <div class="settings-info">
@@ -288,7 +355,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v2.0.0 I — المحفظة الذكية</div>
+              <div class="settings-subtitle">بلي v3.0 — محافظ ذكية + تتبع الكيلومترات</div>
             </div>
           </div>
         </div>
@@ -580,6 +647,31 @@
   </div>
 
 
+  <!-- ⑫ شحن محفظة الوقود -->
+  <div id="modal-fuel-topup" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⛽ شحن محفظة الوقود</div>
+      <div class="edit-group">
+        <div class="edit-label">المبلغ المدفوع للمحطة (دينار)</div>
+        <input class="edit-input" id="fuel-topup-amount" type="number" inputmode="numeric" placeholder="50000">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">عدد اللترات (اختياري)</div>
+        <input class="edit-input" id="fuel-topup-liters" type="number" inputmode="decimal" placeholder="40">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">ملاحظة (اختياري)</div>
+        <input class="edit-input" id="fuel-topup-note" type="text" placeholder="محطة الشمال...">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveFuelTopup()">
+          ⛽ تأكيد الشحن
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ⑪ نافذة إنشاء صندوق جديد -->
   <div id="modal-new-envelope" class="modal-overlay" onclick="if(event.target===this)App.close()">
     <div class="modal-sheet" role="dialog">
@@ -661,6 +753,6 @@
 </div><!-- /app -->
 
 <!-- JavaScript — ES Modules -->
-<script type="module" src="./src/app.js?v=2.0.0i"></script>
+<script type="module" src="./src/app.js?v=3.0.0"></script>
 </body>
 </html>

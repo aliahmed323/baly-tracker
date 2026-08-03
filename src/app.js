@@ -11,7 +11,7 @@ import { Reports }               from './modules/reports.js';
 import { Settings, KEYS }        from './modules/settings.js';
 import { Wallet }                from './modules/wallet.js';
 import { Formatter }             from './utils/formatter.js';
-
+import { FuelWallet }            from './modules/fuelWallet.js';
 // ══════════════════════════════════════════════════
 // الحالة العامة للتطبيق
 // ══════════════════════════════════════════════════
@@ -657,7 +657,7 @@ async function renderHistoryDays(container) {
         <div class="history-dot" style="background:${dotColor}"></div>
         <div class="history-info">
           <div class="history-date">${label}</div>
-          <div class="history-meta">${day.stats.tripCount} رحلة · ${Formatter.num(day.stats.totalFares)} أجور</div>
+          <div class="history-meta">${day.stats.tripCount} رحلة · ${Formatter.num(day.stats.totalFares)} أجور${day.totalKm ? ` · ${day.totalKm} كم` : ''}</div>
         </div>
         <div class="history-right">
           <div class="history-amount" style="color:${day.stats.cashInHand >= 0 ? 'var(--success)' : 'var(--danger)'}">
@@ -688,7 +688,7 @@ async function renderHistoryMonths(container) {
       <div class="history-dot" style="background:var(--info)"></div>
       <div class="history-info">
         <div class="history-date">${Formatter.monthAr(m.year, m.month)}</div>
-        <div class="history-meta">${m.stats.tripCount} رحلة · ${m.stats.workDays} يوم عمل</div>
+        <div class="history-meta">${m.stats.tripCount} رحلة · ${m.stats.workDays} يوم عمل${m.totalKm ? ` · ${m.totalKm} كم` : ''}</div>
       </div>
       <div class="history-right">
         <div class="history-amount" style="color:${m.stats.netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">
@@ -858,6 +858,36 @@ async function renderWallet() {
     Reports.getToday(),
   ]);
   const today = todayData.stats;
+
+  // v3.0 — 4 wallet breakdown
+  setEl('#w3-cash', Formatter.num(walletStats.cashInHand || 0));
+  setEl('#w3-zain', Formatter.num(walletStats.zainCashBalance || 0));
+  setEl('#w3-baly', Formatter.num(walletStats.balyBalance || 0));
+  setEl('#w3-fuel', Formatter.num(walletStats.fuelWalletBalance || 0));
+  
+  const fuelEl = $('#w3-fuel');
+  if (fuelEl) fuelEl.style.color = (walletStats.fuelWalletBalance || 0) >= 0 ? 'var(--success)' : 'var(--danger)';
+  
+  const fuelData = walletStats.fuelData || {};
+  setEl('#w3-fuel-km', fuelData.totalKm ? `${Formatter.num(fuelData.totalKm)} كم مقطوعة` : '');
+  
+  // Load today's fuel price
+  const fuelPrice = await Settings.get(KEYS.FUEL_PRICE) || 750;
+  setEl('#km-fuel-price', Formatter.num(fuelPrice));
+  
+  // Load today's km records
+  const todayKm = await FuelWallet.getDailyRecordsByDate(Formatter.todayKey());
+  const kmToday = $('#v3-km-today');
+  if (kmToday) {
+    if (todayKm.length) {
+      const totalKm = todayKm.reduce((s,r)=>s+(r.km||0),0);
+      const totalL  = todayKm.reduce((s,r)=>s+(r.liters||0),0);
+      const totalC  = todayKm.reduce((s,r)=>s+(r.fuelCost||0),0);
+      kmToday.innerHTML = `<span style="color:var(--primary)">✅ سجّلت اليوم: ${Formatter.num(totalKm)} كم | ${totalL} لتر | ${Formatter.num(totalC)} د.ع</span>`;
+    } else {
+      kmToday.textContent = '';
+    }
+  }
 
   // ── Hero: صافي الأرباح الكلية ──
   setEl('#wallet-total-cash', Formatter.num(walletStats.netProfit));
@@ -1183,6 +1213,54 @@ async function saveAutoFuel() {
   flashToast('⛽ تم إضافة مصروف الوقود', Formatter.num(totalCost));
 }
 
+// ── Fuel Wallet Functions ──────────────────────
+
+function openFuelTopup() {
+  $('#fuel-topup-amount').value = '';
+  $('#fuel-topup-liters').value = '';
+  $('#fuel-topup-note').value   = '';
+  openModal('fuel-topup');
+  setTimeout(() => $('#fuel-topup-amount')?.focus(), 300);
+}
+
+async function saveFuelTopup() {
+  const amount = Number($('#fuel-topup-amount')?.value);
+  const liters = Number($('#fuel-topup-liters')?.value) || 0;
+  const note   = $('#fuel-topup-note')?.value?.trim() || '';
+  if (!amount || amount <= 0) { alert('يرجى إدخال المبلغ المدفوع'); return; }
+  
+  try {
+    await FuelWallet.addTopup({ amount, liters, note });
+    closeModal('fuel-topup');
+    flashToast(`⛽ تم شحن محفظة الوقود بـ ${Formatter.num(amount)} دينار`, '');
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) {
+    alert('خطأ: ' + e.message);
+  }
+}
+
+async function saveDailyKm() {
+  const km     = Number($('#km-input')?.value);
+  const liters = Number($('#liters-input')?.value);
+  if (!km || km <= 0)     { alert('يرجى إدخال عدد الكيلومترات'); return; }
+  if (!liters || liters <= 0) { alert('يرجى إدخال عدد اللترات'); return; }
+  
+  try {
+    const fuelPrice = await Settings.get(KEYS.FUEL_PRICE) || 750;
+    const fuelCost  = Math.round(liters * fuelPrice);
+    await FuelWallet.addDailyRecord({ km, liters });
+    
+    // Clear inputs
+    $('#km-input').value     = '';
+    $('#liters-input').value = '';
+    
+    flashToast(`🛣️ ${Formatter.num(km)} كم | ${liters} لتر | ${Formatter.num(fuelCost)} د.ع`, '');
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) {
+    alert('خطأ: ' + e.message);
+  }
+}
+
 // ══════════════════════════════════════════════════
 // الإعدادات
 // ══════════════════════════════════════════════════
@@ -1335,6 +1413,9 @@ window.App = {
   saveAutoFuel: () => saveAutoFuel(),
 
   // المحفظة
+  openFuelTopup: () => openFuelTopup(),
+  saveFuelTopup: () => saveFuelTopup(),
+  saveDailyKm:   () => saveDailyKm(),
   newEnvelope:        () => newEnvelope(),
   pickEnvEmoji:   (e)    => pickEnvEmoji(e),
   calcDailyTarget:()     => calcDailyTarget(),
