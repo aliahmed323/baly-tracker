@@ -198,20 +198,28 @@
         <div class="section-title">📍 أين أموالك؟</div>
       </div>
       <div class="v3-wallets-grid">
+        <!-- Card 1: Cash -->
         <div class="v3-wallet-card cash">
           <div class="v3wc-icon">💵</div>
           <div class="v3wc-label">نقد بيدي</div>
           <div class="v3wc-value" id="w3-cash">0</div>
         </div>
-        <!-- Card 3: Baly (now clickable) -->
-        <div class="v3-wallet-card baly fade-up" style="animation-delay: 0.15s" onclick="App.openBalyBalance()">
+        <!-- Card 2: Zain Cash (auto-derived) -->
+        <div class="v3-wallet-card zain">
+          <div class="v3wc-icon">💳</div>
+          <div class="v3wc-label">زين كاش</div>
+          <div class="v3wc-value" id="w3-zain">0</div>
+          <div class="v3wc-sub" style="font-size:10px;color:var(--text-muted)">محسوب تلقائياً</div>
+        </div>
+        <!-- Card 3: Baly (clickable - user enters) -->
+        <div class="v3-wallet-card baly" onclick="App.openBalyBalance()" style="cursor:pointer">
           <div class="v3wc-icon" style="color:#818cf8;background:rgba(99,102,241,0.1)">📱</div>
           <div class="v3wc-label">رصيد بلي</div>
           <div class="v3wc-value" id="w3-baly">0</div>
-          <div class="v3wc-sub" id="w3-baly-hint"></div>
+          <div class="v3wc-sub" id="w3-baly-hint">⚠️ اضغط لإدخال الرصيد</div>
         </div>
         <!-- Card 4: Fuel -->
-        <div class="v3-wallet-card fade-up" style="animation-delay: 0.2s">
+        <div class="v3-wallet-card fuel">
           <div class="v3wc-icon" style="color:var(--success);background:rgba(34,197,94,0.1)">⛽</div>
           <div class="v3wc-label">محفظة الوقود</div>
           <div class="v3wc-value" id="w3-fuel">0</div>
@@ -368,7 +376,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v4.0 — إصلاح المحافظ الذكية</div>
+              <div class="settings-subtitle">بلي v5.0 — نظام المكافآت ورصيد بلي</div>
             </div>
           </div>
         </div>
