@@ -8,6 +8,7 @@ import { Transfers } from './transfers.js';
 import { Settings, KEYS } from './settings.js';
 import { Calculator } from '../utils/calculator.js';
 import { Formatter }  from '../utils/formatter.js';
+import { Database }   from '../db/database.js';
 
 
 
