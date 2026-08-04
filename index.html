@@ -294,7 +294,19 @@
     </div>
     <div class="screen-content">
 
-      <!-- /screen-tools -->
+      <!-- ── أدوات بلي ── -->
+      <div class="section-header" style="margin-top: 16px">
+        <div class="section-title">✨ تحديث الأرصدة</div>
+      </div>
+      <div style="margin: 0 16px 16px;">
+        <button class="v3-fuel-topup-btn" onclick="App.openBalyBalance()" style="background:var(--primary); color:white;">
+          📱 إدخال رصيد بلي الحالي
+        </button>
+      </div>
+
+      <div class="spacer"></div>
+    </div>
+  </div><!-- /screen-tools -->
 
 
   <!-- ⑥ شاشة الإعدادات -->
@@ -551,32 +563,7 @@
     </div>
   </div>
 
-  <!-- ⑦ إدخال وقود تلقائي (مسافة اليوم) -->
-  <div id="modal-fuel" class="modal-overlay" onclick="if(event.target===this)App.close()">
-    <div class="modal-sheet" role="dialog" aria-label="وقود تلقائي">
-      <div class="modal-handle"></div>
-      <div class="modal-title">تسجيل وقود (تلقائي) ⛽</div>
 
-      <div class="edit-field">
-        <div class="edit-label">المسافة المقطوعة اليوم (كم)</div>
-        <input type="number" class="edit-input" id="fuel-km" inputmode="numeric" placeholder="مثال: 60">
-      </div>
-      <div class="edit-field">
-        <div class="edit-label">معدل الاستهلاك (كم للتر الواحد)</div>
-        <input type="number" class="edit-input" id="fuel-rate" inputmode="numeric" placeholder="مثال: 10">
-      </div>
-      <div class="edit-field">
-        <div class="edit-label">ملاحظة (اختياري)</div>
-        <input type="text" class="edit-input" id="fuel-note" placeholder="مثال: تفويلة من محطة اليرموك">
-      </div>
-
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-primary" onclick="App.saveAutoFuel()">
-          حساب وإضافة كمصروف
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- ⑧ تحويل لصندوق (Envelope Transfer) -->
   <div id="modal-transfer-env" class="modal-overlay" onclick="if(event.target===this)App.close()">
@@ -661,30 +648,7 @@
   </div>
 
 
-  <!-- ⑬ مكافأة الشركة -->
-  <div id="modal-company-bonus" class="modal-overlay" onclick="if(event.target===this)App.close()">
-    <div class="modal-sheet" role="dialog">
-      <div class="modal-handle"></div>
-      <div class="modal-title">🎁 مكافأة الشركة</div>
-      <div class="edit-group">
-        <div class="edit-label">مبلغ المكافأة (دينار)</div>
-        <input class="edit-input" id="comp-bonus-amount" type="number" inputmode="numeric" placeholder="11000">
-      </div>
-      <div class="edit-group">
-        <div class="edit-label">التاريخ</div>
-        <input class="edit-input" id="comp-bonus-date" type="date">
-      </div>
-      <div class="edit-group">
-        <div class="edit-label">ملاحظة (اختياري)</div>
-        <input class="edit-input" id="comp-bonus-note" type="text" placeholder="مكافأة شهر يوليو...">
-      </div>
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-primary" onclick="App.saveCompanyBonus()">
-          🎁 تسجيل المكافأة
-        </button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- ⑭ رصيد بلي -->
   <div id="modal-baly-snapshot" class="modal-overlay" onclick="if(event.target===this)App.close()">
@@ -712,8 +676,7 @@
     </div>
   </div>
 
-  
-  </div>
+
 
   <!-- ⑪ نافذة إنشاء صندوق جديد -->
   <div id="modal-new-envelope" class="modal-overlay" onclick="if(event.target===this)App.close()">
