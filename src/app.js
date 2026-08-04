@@ -11,7 +11,7 @@ import { Reports }               from './modules/reports.js';
 import { Settings, KEYS }        from './modules/settings.js';
 import { Wallet }                from './modules/wallet.js';
 import { Formatter }             from './utils/formatter.js';
-import { FuelWallet }            from './modules/fuelWallet.js';
+import { BalyBalance }           from './modules/balyBalance.js';
 // ══════════════════════════════════════════════════
 // الحالة العامة للتطبيق
 // ══════════════════════════════════════════════════
@@ -922,18 +922,7 @@ async function renderWallet() {
   setEl('#km-fuel-price', Formatter.num(fuelPrice));
   
   // Load today's km records
-  const todayKm = await FuelWallet.getDailyRecordsByDate(Formatter.todayKey());
-  const kmToday = $('#v3-km-today');
-  if (kmToday) {
-    if (todayKm.length) {
-      const totalKm = todayKm.reduce((s,r)=>s+(r.km||0),0);
-      const totalL  = todayKm.reduce((s,r)=>s+(r.liters||0),0);
-      const totalC  = todayKm.reduce((s,r)=>s+(r.fuelCost||0),0);
-      kmToday.innerHTML = `<span style="color:var(--primary)">✅ سجّلت اليوم: ${Formatter.num(totalKm)} كم | ${totalL} لتر | ${Formatter.num(totalC)} د.ع</span>`;
-    } else {
-      kmToday.textContent = '';
-    }
-  }
+  
 
   // ── Hero: صافي الأرباح الكلية ──
   setEl('#wallet-total-cash', Formatter.num(walletStats.netProfit));
@@ -1261,54 +1250,11 @@ async function saveAutoFuel() {
 
 // ── Fuel Wallet Functions ──────────────────────
 
-function openFuelTopup() {
-  $('#fuel-topup-amount').value = '';
-  $('#fuel-topup-liters').value = '';
-  $('#fuel-topup-note').value   = '';
-  openModal('fuel-topup');
-  setTimeout(() => $('#fuel-topup-amount')?.focus(), 300);
-}
 
-async function saveFuelTopup() {
-  const amount = Number($('#fuel-topup-amount')?.value);
-  const liters = Number($('#fuel-topup-liters')?.value) || 0;
-  const note   = $('#fuel-topup-note')?.value?.trim() || '';
-  if (!amount || amount <= 0) { alert('يرجى إدخال المبلغ المدفوع'); return; }
-  
-  try {
-    await FuelWallet.addTopup({ amount, liters, note });
-    closeModal('fuel-topup');
-    flashToast(`⛽ تم شحن محفظة الوقود بـ ${Formatter.num(amount)} دينار`, '');
-    if (S.screen === 'wallet') renderWallet();
-  } catch(e) {
-    alert('خطأ: ' + e.message);
-  }
-}
 
 // ── v5.0: مكافأة الشركة ────────────────────────────
 
-function openCompanyBonus() {
-  const today = Formatter.todayKey();
-  const el = $('#comp-bonus-date');
-  if (el) el.value = today;
-  if ($('#comp-bonus-amount')) $('#comp-bonus-amount').value = '';
-  if ($('#comp-bonus-note')) $('#comp-bonus-note').value = '';
-  openModal('company-bonus');
-  setTimeout(() => $('#comp-bonus-amount')?.focus(), 300);
-}
 
-async function saveCompanyBonus() {
-  const amount = Number($('#comp-bonus-amount')?.value);
-  const date   = $('#comp-bonus-date')?.value || Formatter.todayKey();
-  const note   = $('#comp-bonus-note')?.value?.trim() || '';
-  if (!amount || amount <= 0) { alert('يرجى إدخال مبلغ المكافأة'); return; }
-  try {
-    await Bonuses.add({ amount, date, note });
-    closeModal('company-bonus');
-    flashToast(`🎁 تم تسجيل مكافأة ${Formatter.num(amount)} دينار`, '');
-    if (S.screen === 'wallet') renderWallet();
-  } catch(e) { alert('خطأ: ' + e.message); }
-}
 
 // ── v5.0: رصيد بلي ─────────────────────────────────
 
@@ -1338,27 +1284,7 @@ async function saveBalyBalance() {
 
 
 
-async function saveDailyKm() {
-  const km     = Number($('#km-input')?.value);
-  const liters = Number($('#liters-input')?.value);
-  if (!km || km <= 0)     { alert('يرجى إدخال عدد الكيلومترات'); return; }
-  if (!liters || liters <= 0) { alert('يرجى إدخال عدد اللترات'); return; }
-  
-  try {
-    const fuelPrice = await Settings.get(KEYS.FUEL_PRICE) || 750;
-    const fuelCost  = Math.round(liters * fuelPrice);
-    await FuelWallet.addDailyRecord({ km, liters });
-    
-    // Clear inputs
-    $('#km-input').value     = '';
-    $('#liters-input').value = '';
-    
-    flashToast(`🛣️ ${Formatter.num(km)} كم | ${liters} لتر | ${Formatter.num(fuelCost)} د.ع`, '');
-    if (S.screen === 'wallet') renderWallet();
-  } catch(e) {
-    alert('خطأ: ' + e.message);
-  }
-}
+
 
 // ══════════════════════════════════════════════════
 // الإعدادات

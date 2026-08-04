@@ -8,7 +8,7 @@ import { Transfers } from './transfers.js';
 import { Settings, KEYS } from './settings.js';
 import { Calculator } from '../utils/calculator.js';
 import { Formatter }  from '../utils/formatter.js';
-import { FuelWallet } from './fuelWallet.js';
+
 
 
 async function getPercent() {
@@ -69,7 +69,6 @@ export const Reports = {
       Database.getAllExpenses(),
       Database.getAllTransfers(),
       getPercent(),
-      FuelWallet.getAllDailyRecords(),
     ]);
 
     const datesSet = new Set();
@@ -84,11 +83,9 @@ export const Reports = {
       const trips = allTrips.filter(t => t.date === dateKey);
       const expenses = allExp.filter(e => e.date === dateKey);
       const transfers = allTrans.filter(t => t.date === dateKey);
-      const dayKm = dailyRecords.filter(r => r.date === dateKey).reduce((s, r) => s + (r.km || 0), 0);
       
       return {
         date: dateKey,
-        totalKm: dayKm,
         stats: Calculator.dayStats(trips, expenses, transfers, pct),
       };
     });
@@ -96,12 +93,11 @@ export const Reports = {
 
   /** جميع الأشهر التي تحتوي على بيانات */
   async getAllMonths() {
-    const [allTrips, allExp, allTrans, pct, dailyRecords] = await Promise.all([
+    const [allTrips, allExp, allTrans, pct] = await Promise.all([
       Database.getAllTrips(),
       Database.getAllExpenses(),
       Database.getAllTransfers(),
       getPercent(),
-      FuelWallet.getAllDailyRecords(),
     ]);
 
     const groups = {};
@@ -122,13 +118,11 @@ export const Reports = {
       const trips = allTrips.filter(t => t.date?.startsWith(monthStr));
       const expenses = allExp.filter(e => e.date?.startsWith(monthStr));
       const transfers = allTrans.filter(t => t.date?.startsWith(monthStr));
-      const monthKm = dailyRecords.filter(r => r.date?.startsWith(monthStr)).reduce((s, r) => s + (r.km || 0), 0);
 
       const [y, m] = monthStr.split('-');
       return {
         year: parseInt(y),
         month: parseInt(m),
-        totalKm: monthKm,
         stats: Calculator.monthStats(trips, expenses, transfers, pct),
       };
     });

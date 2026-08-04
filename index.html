@@ -294,50 +294,7 @@
     </div>
     <div class="screen-content">
 
-      <!-- ── تسجيل الكيلومترات اليومية ── -->
-      <div class="section-header" style="margin-top: 16px">
-        <div class="section-title">🛣️ تسجيل استهلاك الوقود اليومي</div>
-      </div>
-      <div class="v3-km-card">
-        <div class="v3-km-row">
-          <div class="v3-km-field">
-            <label class="v3-km-label">الكيلومترات</label>
-            <input class="v3-km-input" id="km-input" type="number" inputmode="decimal" placeholder="100">
-          </div>
-          <div class="v3-km-field">
-            <label class="v3-km-label">اللترات</label>
-            <input class="v3-km-input" id="liters-input" type="number" inputmode="decimal" placeholder="6">
-          </div>
-        </div>
-        <div class="v3-km-cost" id="km-cost-preview">سعر الوقود: <span id="km-fuel-price">750</span> د.ع/لتر</div>
-        <button class="v3-km-save-btn" onclick="App.saveDailyKm()">
-          🛣️ تسجيل الاستهلاك اليومي
-        </button>
-        <div class="v3-km-today" id="v3-km-today"></div>
-      </div>
-
-      <!-- ── أدوات v5.0/v6.0 ── -->
-      <div class="section-header">
-        <div class="section-title">✨ إضافة أرصدة ومكافآت</div>
-      </div>
-      <div style="margin: 0 16px 16px;">
-        <button class="v3-fuel-topup-btn" onclick="App.openFuelTopup()" style="margin-bottom: 12px">
-          شحن محفظة الوقود ⛽
-        </button>
-        
-        <div class="v5-action-row" style="margin:0;">
-          <button class="v5-action-btn bonus" onclick="App.openCompanyBonus()">
-            🎁 مكافأة شركة
-          </button>
-          <button class="v5-action-btn baly" onclick="App.openBalyBalance()">
-            📱 رصيد بلي
-          </button>
-        </div>
-      </div>
-
-      <div class="spacer"></div>
-    </div>
-  </div><!-- /screen-tools -->
+      <!-- /screen-tools -->
 
 
   <!-- ⑥ شاشة الإعدادات -->
@@ -755,29 +712,7 @@
     </div>
   </div>
 
-  <!-- ⑫ شحن محفظة الوقود -->
-  <div id="modal-fuel-topup" class="modal-overlay" onclick="if(event.target===this)App.close()">
-    <div class="modal-sheet" role="dialog">
-      <div class="modal-handle"></div>
-      <div class="modal-title">⛽ شحن محفظة الوقود</div>
-      <div class="edit-group">
-        <div class="edit-label">المبلغ المدفوع للمحطة (دينار)</div>
-        <input class="edit-input" id="fuel-topup-amount" type="number" inputmode="numeric" placeholder="50000">
-      </div>
-      <div class="edit-group">
-        <div class="edit-label">عدد اللترات (اختياري)</div>
-        <input class="edit-input" id="fuel-topup-liters" type="number" inputmode="decimal" placeholder="40">
-      </div>
-      <div class="edit-group">
-        <div class="edit-label">ملاحظة (اختياري)</div>
-        <input class="edit-input" id="fuel-topup-note" type="text" placeholder="محطة الشمال...">
-      </div>
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-primary" onclick="App.saveFuelTopup()">
-          ⛽ تأكيد الشحن
-        </button>
-      </div>
-    </div>
+  
   </div>
 
   <!-- ⑪ نافذة إنشاء صندوق جديد -->
