@@ -1023,8 +1023,8 @@ async function renderWallet() {
     const progressColor = pct >= 100 ? 'var(--success)' : clr.color;
 
     return `
-    <div class="env-card fade-up">
-      <div class="env-card-top" onclick="App.openEnvDetails('${env.id}')" style="cursor:pointer">
+    <div class="env-card fade-up" onclick="App.openEnvDetails('${env.id}')" style="cursor:pointer">
+      <div class="env-card-top">
         <div class="env-icon-wrap" style="background:${clr.bg}">${env.icon}</div>
         <div class="env-card-body">
           <div class="env-name">${env.name}</div>
@@ -1036,7 +1036,7 @@ async function renderWallet() {
         </div>
       </div>
       ${monthly > 0 ? `
-      <div style="padding: 0 16px 2px;">
+      <div style="padding: 0 16px 12px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
           <span style="font-size:11px;color:var(--text-muted)">${Formatter.num(env.balance)} / ${Formatter.num(monthly)}</span>
           <span style="font-size:11px;font-weight:800;color:${progressColor}">${pct}%</span>
@@ -1046,7 +1046,7 @@ async function renderWallet() {
         </div>
       </div>` : ''}
       <div class="env-actions">
-        <button class="env-action-btn deposit" onclick="App.openTransferEnv('${env.id}')">
+        <button class="env-action-btn deposit" onclick="event.stopPropagation(); App.openTransferEnv('${env.id}')">
           📥 إيداع
         </button>
         <button class="env-action-btn spend" onclick="App.openExpenseEnv('${env.id}')">
@@ -1529,6 +1529,9 @@ window.App = {
   // حذف مباشر من البطاقات
   deleteExpenseItem:  (id) => deleteExpenseItem(id),
   deleteTransferItem: (id) => deleteTransferItem(id),
+
+  // helper للـ EnvDetails
+  getSelectedEnv: () => S.selectedEnv,
 
   // Toast
   editLast:   ()   => { if (S.lastTripId) { hideToast(); openEditTrip(S.lastTripId); } },

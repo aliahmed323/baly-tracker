@@ -45,11 +45,11 @@ export const Wallet = {
   /**
    * تحويل مبلغ من الرصيد الحر إلى صندوق
    */
-  async transferToEnvelope(envelopeId, amount) {
-    // التحقق من الرصيد الحر أولاً
+  async transferToEnvelope(envelopeId, amount, note = '') {
+    // التحقق من توفر النقد الحر الكافي
     const stats = await this.getStats();
     if (amount > 0 && stats.unallocated < amount) {
-      throw new Error('الرصيد الحر لا يكفي للإيداع');
+      throw new Error('المبلغ أكبر من النقد الحر المتوفر');
     }
 
     const envelopes = await this.getEnvelopes();
@@ -64,6 +64,7 @@ export const Wallet = {
       type: amount > 0 ? 'deposit_to_env' : 'withdraw_from_env',
       envelopeId,
       amount: Math.abs(amount),
+      note,
       timestamp: Date.now(),
       date: Formatter.todayKey()
     });
