@@ -1,0 +1,11 @@
+import { Trips } from './src/modules/trips.js';
+import { Expenses } from './src/modules/expenses.js';
+import { Transfers } from './src/modules/transfers.js';
+import { Settings } from './src/modules/settings.js';
+import { Calculator } from './src/utils/calculator.js';
+import { Formatter } from './src/utils/formatter.js';
+import { Database } from './src/db/database.js';
+import { Reports } from './src/modules/reports.js';
+import { Wallet } from './src/modules/wallet.js';
+import { BalyBalance } from './src/modules/balyBalance.js';
+console.log('Imports OK');

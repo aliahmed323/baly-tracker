@@ -648,7 +648,14 @@ async function renderHistory() {
 async function renderHistoryDays(container) {
   container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-  const days = await Reports.getAllDays();
+  let days = [];
+  try {
+    days = await Reports.getAllDays();
+  } catch(e) {
+    container.innerHTML = `<div style="padding:20px;color:red;text-align:center;">حدث خطأ: ${e.message}</div>`;
+    console.error(e);
+    return;
+  }
 
   const addBtnHtml = `
     <div style="margin: 16px; position: relative;">
@@ -697,7 +704,14 @@ async function renderHistoryDays(container) {
 async function renderHistoryMonths(container) {
   container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-  const months = await Reports.getAllMonths();
+  let months = [];
+  try {
+    months = await Reports.getAllMonths();
+  } catch(e) {
+    container.innerHTML = `<div style="padding:20px;color:red;text-align:center;">حدث خطأ: ${e.message}</div>`;
+    console.error(e);
+    return;
+  }
 
   if (!months.length) {
     container.innerHTML = `
