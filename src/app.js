@@ -235,9 +235,10 @@ function openNumpad(mode) {
   if (extraRow && dateContainer && noteContainer) {
     if (mode === 'expense') {
       extraRow.style.display = 'flex';
-      dateContainer.style.display = 'none';
+      dateContainer.style.display = 'block';
       noteContainer.style.display = 'block';
       if ($('#numpad-note')) $('#numpad-note').value = '';
+      if ($('#numpad-date')) $('#numpad-date').value = Formatter.todayKey();
     } else if (mode === 'zaincash') {
       extraRow.style.display = 'flex';
       dateContainer.style.display = 'block';
@@ -330,7 +331,8 @@ function pickExpenseCategory(catId) {
 async function saveExpense(amount) {
   if (!S.expenseCat) return;
   const note = $('#numpad-note')?.value?.trim() || '';
-  await Expenses.add({ category: S.expenseCat, amount, note });
+  const date = $('#numpad-date')?.value || null;
+  await Expenses.add({ category: S.expenseCat, amount, note, date });
   S.expenseCat = null;
   if ($('#numpad-note')) $('#numpad-note').value = '';
   await refreshHomeStats();
@@ -1334,78 +1336,7 @@ async function saveBalyBalance() {
   } catch(e) { alert('خطأ: ' + e.message); }
 }
 
-window.App = {
-  // Navigation
-  nav:        (scr) => nav(scr),
-  
-  // Today's trips
-  addTrip:    (paymentType) => addTrip(paymentType),
-  pickExtra:  (val) => pickExtra(val),
-  pickBonus:  (val) => pickBonus(val),
-  setTripDate:(d)  => setTripDate(d),
-  openDayAddTrip: (d) => openDayAddTrip(d),
 
-  // نامباد
-  numpad:     (k)  => numpadPress(k),
-
-  // مصاريف وتحويلات
-  openExpense: ()       => openExpenseModal(),
-  pickCat:    (id)     => pickExpenseCategory(id),
-  openZain:   ()       => openZainCashModal(),
-
-  // وقود تلقائي
-  openFuel:     () => openFuel(),
-  saveAutoFuel: () => saveAutoFuel(),
-
-  // المحفظة
-  openFuelTopup: () => openFuelTopup(),
-  saveFuelTopup: () => saveFuelTopup(),
-  saveDailyKm:   () => saveDailyKm(),
-  newEnvelope:        () => newEnvelope(),
-  pickEnvEmoji:   (e)    => pickEnvEmoji(e),
-  calcDailyTarget:()     => calcDailyTarget(),
-  saveNewEnvelope:()     => saveNewEnvelope(),
-  openTransferEnv:    (id) => openTransferEnv(id),
-  confirmTransferEnv: () => confirmTransferEnv(),
-  openExpenseEnv:     (id) => openExpenseEnv(id),
-  confirmExpenseEnv:  () => confirmExpenseEnv(),
-  openEnvDetails:     (id) => openEnvDetails(id),
-  deleteEnvTransaction: (txId, envId) => deleteEnvTransaction(txId, envId),
-
-  // حذف مباشر من البطاقات
-  deleteExpenseItem:  (id) => deleteExpenseItem(id),
-  deleteTransferItem: (id) => deleteTransferItem(id),
-
-  // Toast
-  editLast:   ()   => { if (S.lastTripId) { hideToast(); openEditTrip(S.lastTripId); } },
-  undoLast:   ()   => undoLastTrip(),
-  hideToast:  ()   => hideToast(),
-
-  // تعديل
-  editTrip:   (id) => openEditTrip(id),
-  saveEdit:   ()   => saveEditTrip(),
-  deleteTrip: ()   => deleteEditTrip(),
-
-  // سجل
-  openDay:    (d)      => openDay(d),
-  openMonth:  (y, m)   => openMonth(y, m),
-  backHistory:()       => backHistory(),
-  switchTab:  (t)      => switchTab(t),
-
-  // إعدادات
-  changePercent: () => changePercent(),
-  changeFuelPrice: () => changeFuelPrice(),
-  exportBackup:  () => exportBackup(),
-
-  // v5.0
-  openCompanyBonus: () => openCompanyBonus(),
-  saveCompanyBonus: () => saveCompanyBonus(),
-  openBalyBalance:  () => openBalyBalance(),
-  saveBalyBalance:  () => saveBalyBalance(),
-
-  // إغلاق النوافذ
-  close: () => closeAllModals(),
-};
 
 async function saveDailyKm() {
   const km     = Number($('#km-input')?.value);
@@ -1619,6 +1550,12 @@ window.App = {
   changePercent: () => changePercent(),
   changeFuelPrice: () => changeFuelPrice(),
   exportBackup:  () => exportBackup(),
+
+  // v5.0 — مكافآت الشركة + رصيد بلي
+  openCompanyBonus: () => openCompanyBonus(),
+  saveCompanyBonus: () => saveCompanyBonus(),
+  openBalyBalance:  () => openBalyBalance(),
+  saveBalyBalance:  () => saveBalyBalance(),
 
   // إغلاق النوافذ
   close: () => closeAllModals(),

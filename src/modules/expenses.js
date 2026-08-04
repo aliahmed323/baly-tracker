@@ -15,11 +15,11 @@ export const CATEGORIES = {
 
 export const Expenses = {
 
-  async add({ category, amount, note = '' }) {
+  async add({ category, amount, note = '', date = null }) {
     const now = Date.now();
     return Database.addExpense({
       category, amount, note,
-      date:      Formatter.dateKey(now),
+      date:      date || Formatter.dateKey(now),
       timestamp: now,
     });
   },

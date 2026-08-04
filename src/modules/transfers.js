@@ -7,11 +7,11 @@ import { Formatter } from '../utils/formatter.js';
 
 export const Transfers = {
 
-  async add({ amount, note = '' }) {
+  async add({ amount, note = '', date = null }) {
     const now = Date.now();
     return Database.addTransfer({
       amount, note,
-      date:      Formatter.dateKey(now),
+      date:      date || Formatter.dateKey(now),
       timestamp: now,
     });
   },
