@@ -1304,35 +1304,39 @@ function openWalletAdjustment() {
 }
 
 async function saveWalletAdjustment() {
-  const actualCash = $('#adj-cash').value;
-  const actualZain = $('#adj-zain').value;
-  
-  if (actualCash !== '') {
-    const cashNum = Formatter.parseArNum(actualCash);
-    if (!isNaN(cashNum)) {
-      const stats = await Reports.getAllTimeStats();
-      const baseCash = stats.cashInHand || 0;
-      await Settings.set(KEYS.CASH_ADJUST, cashNum - baseCash);
+  try {
+    const actualCash = $('#adj-cash').value;
+    const actualZain = $('#adj-zain').value;
+    
+    if (actualCash !== '') {
+      const cashNum = Formatter.parseArNum(actualCash);
+      if (!isNaN(cashNum)) {
+        const stats = await Reports.getAllTimeStats();
+        const baseCash = stats.cashInHand || 0;
+        await Settings.set(KEYS.CASH_ADJUST, cashNum - baseCash);
+      }
     }
-  }
-  
-  if (actualZain !== '') {
-    const zainNum = Formatter.parseArNum(actualZain);
-    if (!isNaN(zainNum)) {
-      const stats = await Reports.getAllTimeStats();
-      const allTransfers = await Database.getAllTransfers();
-      const allTransfersSum = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
-      const allBalySnaps = await BalyBalance.getAll();
-      const latestBalySnap = allBalySnaps.length > 0 ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
-      const balyBalance = latestBalySnap !== null ? (latestBalySnap.balance || 0) : ((stats.appBalance || 0) + allTransfersSum);
-      
-      const baseZain = (stats.netProfit || 0) - (stats.cashInHand || 0) - balyBalance;
-      await Settings.set(KEYS.ZAIN_ADJUST, zainNum - baseZain);
+    
+    if (actualZain !== '') {
+      const zainNum = Formatter.parseArNum(actualZain);
+      if (!isNaN(zainNum)) {
+        const stats = await Reports.getAllTimeStats();
+        const allTransfers = await Database.getAllTransfers();
+        const allTransfersSum = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
+        const allBalySnaps = await BalyBalance.getAll();
+        const latestBalySnap = allBalySnaps.length > 0 ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+        const balyBalance = latestBalySnap !== null ? (latestBalySnap.balance || 0) : ((stats.appBalance || 0) + allTransfersSum);
+        
+        const baseZain = (stats.netProfit || 0) - (stats.cashInHand || 0) - balyBalance;
+        await Settings.set(KEYS.ZAIN_ADJUST, zainNum - baseZain);
+      }
     }
+    
+    closeModal('adjust-wallet');
+    if (S.screen === 'wallet') await renderWallet();
+  } catch (e) {
+    alert('خطأ أثناء الحفظ: ' + e.message);
   }
-  
-  closeModal('adjust-wallet');
-  if (S.screen === 'wallet') await renderWallet();
 }
 
 

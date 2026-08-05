@@ -3,7 +3,7 @@
  * Cache-first strategy for full offline support
  */
 
-const CACHE_NAME = 'baly-v6.0.6';
+const CACHE_NAME = 'baly-v6.0.7';
 
 const ASSETS_TO_CACHE = [
   './',
