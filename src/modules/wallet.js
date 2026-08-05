@@ -8,6 +8,7 @@ import { Formatter } from '../utils/formatter.js';
 
 
 import { BalyBalance } from './balyBalance.js';
+import { Settings, KEYS } from './settings.js';
 
 
 export const Wallet = {
@@ -141,12 +142,14 @@ export const Wallet = {
 
   async getStats() {
     // جلب كل البيانات معاً
-    const [taxiStats, envelopes, txs, allTransfers, allBalySnaps] = await Promise.all([
+    const [taxiStats, envelopes, txs, allBalySnaps, allTransfers, cashAdj, zainAdj] = await Promise.all([
       Reports.getAllTimeStats(),
       this.getEnvelopes(),
       Database.getAllWalletTransactions(),
+      BalyBalance.getAll(),
       Database.getAllTransfers(),
-      Database.getAllBalySnapshots(),
+      Settings.get(KEYS.CASH_ADJUST),
+      Settings.get(KEYS.ZAIN_ADJUST)
     ]);
 
     const allTransfersSum = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
@@ -155,7 +158,7 @@ export const Wallet = {
     const adjustedNetProfit = (taxiStats.netProfit || 0);
 
     // ── النقد بيدك ────────────────────────────────────────
-    const cashInHand = (taxiStats.cashInHand || 0);
+    const cashInHand = (taxiStats.cashInHand || 0) + (cashAdj || 0);
 
     // ── رصيد بلي ──────────────────────────────────────────
     // إذا سجّل المستخدم رصيده من التطبيق → استخدم تلك اللقطة
@@ -168,13 +171,16 @@ export const Wallet = {
       : ((taxiStats.appBalance || 0) + allTransfersSum);
 
     // ── زين كاش (محسوب تلقائياً) ──────────────────────────
-    // زين كاش = صافي الربح - كاش - رصيد بلي
-    const zainCashBalance = adjustedNetProfit - cashInHand - balyBalance;
+    // زين كاش = صافي الربح (الأصلي) - الكاش المحسوب بدون تعديل - رصيد بلي
+    // لكن بما أن cashInHand تم تعديله، الأفضل حساب زين كاش على الحقيقي، ثم إضافة تعديله
+    // زين كاش = (الربح - النقد الأصلي - بلي) + تعديل زين كاش
+    const baseZainCash = adjustedNetProfit - (taxiStats.cashInHand || 0) - balyBalance;
+    const zainCashBalance = baseZainCash + (zainAdj || 0);
 
     // ── صناديق الأموال ─────────────────────────────────────
     const totalInEnvelopes    = envelopes.reduce((s,e) => s+(e.balance||0), 0);
     const totalWalletExpenses = txs.filter(t=>t.type==='envelope_expense').reduce((s,t)=>s+t.amount,0);
-    const currentPhysicalCash = adjustedNetProfit - totalWalletExpenses;
+    const currentPhysicalCash = cashInHand - totalWalletExpenses;
     const unallocated         = currentPhysicalCash - totalInEnvelopes;
 
     return {

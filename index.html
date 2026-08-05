@@ -188,6 +188,9 @@
 
       <!-- ── Hero: صافي الأرباح ── -->
       <div class="wallet-hero-card">
+        <button onclick="App.openWalletAdjustment()" style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.2); border:none; border-radius:8px; padding:6px 10px; color:var(--text); font-size:12px; font-family:inherit; cursor:pointer; font-weight:bold; z-index:2;">
+          ⚙️ تسوية الأرصدة
+        </button>
         <div class="whc-label">💰 صافي أرباحك الكلية</div>
         <div class="whc-value" id="wallet-total-cash">0</div>
         <div class="whc-sub">دينار عراقي</div>
@@ -756,9 +759,33 @@
     </div>
   </div>
 
+  <!-- نافذة تعديل أرصدة المحفظة -->
+  <div id="modal-adjust-wallet" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⚖️ تسوية وتعديل الأرصدة</div>
+      <p style="text-align:center;font-size:12px;color:var(--text-muted);margin:0 16px 16px;">أدخل الأرصدة الحقيقية الموجودة لديك الآن لتصحيح حسابات التطبيق وتصفير الأخطاء.</p>
+
+      <div class="edit-group">
+        <div class="edit-label">النقد الفعلي بيدك الآن (دينار)</div>
+        <input type="number" class="edit-input" id="adj-cash" inputmode="numeric" placeholder="مثال: 50000">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">رصيد محفظة زين كاش الفعلي الآن (دينار)</div>
+        <input type="number" class="edit-input" id="adj-zain" inputmode="numeric" placeholder="مثال: 28000">
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveWalletAdjustment()">
+          💾 حفظ وتعديل الأرصدة
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /app -->
 
-<!-- JavaScript — ES Modules -->
-<script type="module" src="./src/app.js?v=6.0.4"></script>
+<!-- JavaScript بـ ES Modules -->
+<script type="module" src="./src/app.js?v=6.0.5"></script>
 </body>
 </html>

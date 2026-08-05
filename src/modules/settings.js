@@ -9,6 +9,8 @@ export const KEYS = {
   PRICE_BUTTONS:  'price_buttons',
   APP_NAME:       'app_name',
   FUEL_PRICE:     'fuelPricePerLiter',
+  CASH_ADJUST:    'cash_adjust',
+  ZAIN_ADJUST:    'zain_adjust',
 };
 
 
@@ -17,6 +19,8 @@ export const DEFAULTS = {
   [KEYS.PRICE_BUTTONS]: [750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000],
   [KEYS.APP_NAME]:      'بلي',
   [KEYS.FUEL_PRICE]:    750, // سعر لتر البنزين الافتراضي
+  [KEYS.CASH_ADJUST]:   0,
+  [KEYS.ZAIN_ADJUST]:   0,
 };
 
 export const Settings = {
