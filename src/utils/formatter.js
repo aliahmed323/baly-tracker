@@ -20,6 +20,16 @@ export const Formatter = {
     return Number(amount).toLocaleString('en-US');
   },
 
+  /** تحويل الأرقام العربية المشرقية إلى إنجليزية، ثم تحويلها إلى رقم */
+  parseArNum(val) {
+    if (val == null || val === '') return NaN;
+    if (typeof val === 'number') return val;
+    // استبدال الأرقام الهندية/العربية
+    const english = String(val).replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+                               .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+    return Number(english);
+  },
+
   /** تنسيق المبلغ مع "د.ع" */
   money(amount) {
     return this.num(amount) + ' د.ع';

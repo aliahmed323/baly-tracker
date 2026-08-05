@@ -181,16 +181,16 @@
 
   <!-- ④ شاشة المحفظة (Wallet) v3.0 -->
   <div id="screen-wallet" class="screen">
-    <div class="screen-header">
+    <div class="screen-header" style="justify-content: space-between; padding-left: 16px;">
       <h1>المحفظة 💼</h1>
+      <button onclick="App.openWalletAdjustment()" style="background:none; border:none; color:var(--text-muted); font-size:12px; font-weight:bold; cursor:pointer; padding:8px;">
+        ⚙️ تسوية الأرصدة
+      </button>
     </div>
     <div class="screen-content">
 
       <!-- ── Hero: صافي الأرباح ── -->
       <div class="wallet-hero-card">
-        <button onclick="App.openWalletAdjustment()" style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.2); border:none; border-radius:8px; padding:6px 10px; color:var(--text); font-size:12px; font-family:inherit; cursor:pointer; font-weight:bold; z-index:2;">
-          ⚙️ تسوية الأرصدة
-        </button>
         <div class="whc-label">💰 صافي أرباحك الكلية</div>
         <div class="whc-value" id="wallet-total-cash">0</div>
         <div class="whc-sub">دينار عراقي</div>
@@ -786,6 +786,6 @@
 </div><!-- /app -->
 
 <!-- JavaScript بـ ES Modules -->
-<script type="module" src="./src/app.js?v=6.0.5"></script>
+<script type="module" src="./src/app.js?v=6.0.6"></script>
 </body>
 </html>

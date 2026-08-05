@@ -1308,7 +1308,7 @@ async function saveWalletAdjustment() {
   const actualZain = $('#adj-zain').value;
   
   if (actualCash !== '') {
-    const cashNum = Number(actualCash);
+    const cashNum = Formatter.parseArNum(actualCash);
     if (!isNaN(cashNum)) {
       const stats = await Reports.getAllTimeStats();
       const baseCash = stats.cashInHand || 0;
@@ -1317,7 +1317,7 @@ async function saveWalletAdjustment() {
   }
   
   if (actualZain !== '') {
-    const zainNum = Number(actualZain);
+    const zainNum = Formatter.parseArNum(actualZain);
     if (!isNaN(zainNum)) {
       const stats = await Reports.getAllTimeStats();
       const allTransfers = await Database.getAllTransfers();
