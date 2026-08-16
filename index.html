@@ -212,28 +212,29 @@
           <div class="v3wc-icon">💳</div>
           <div class="v3wc-label">زين كاش</div>
           <div class="v3wc-value" id="w3-zain">0</div>
-          <div class="v3wc-sub" style="font-size:10px;color:var(--text-muted)">محسوب تلقائياً</div>
+          <div class="v3wc-sub" style="font-size:10px;color:var(--text-muted)">اضغط للتفاصيل</div>
         </div>
-        <!-- Card 3: Baly (clickable - user enters) -->
-        <div class="v3-wallet-card baly" onclick="App.openBalyBalance()" style="cursor:pointer">
+        <!-- Card 3: Baly - اضغط لبوابة الصباح -->
+        <div class="v3-wallet-card baly" onclick="App.openMorningGateway()" style="cursor:pointer">
           <div class="v3wc-icon" style="color:#818cf8;background:rgba(99,102,241,0.1)">📱</div>
           <div class="v3wc-label">رصيد بلي</div>
           <div class="v3wc-value" id="w3-baly">0</div>
-          <div class="v3wc-sub" id="w3-baly-hint">⚠️ اضغط لإدخال الرصيد</div>
+          <div class="v3wc-sub" id="w3-baly-hint">⚠️ سجّل أرصدة اليوم</div>
         </div>
-        <!-- Card 4: Fuel -->
-        <div class="v3-wallet-card fuel">
-          <div class="v3wc-icon" style="color:var(--success);background:rgba(34,197,94,0.1)">⛽</div>
-          <div class="v3wc-label">محفظة الوقود</div>
-          <div class="v3wc-value" id="w3-fuel">0</div>
-          <div class="v3wc-sub" id="w3-fuel-km"></div>
+        <!-- Card 4: Zain Cash - clickable wallet -->
+        <div class="v3-wallet-card" onclick="App.openZainWallet()" style="cursor:pointer;background:rgba(34,197,94,0.05);border-color:rgba(34,197,94,0.2)">
+          <div class="v3wc-icon" style="color:var(--success);background:rgba(34,197,94,0.12)">💚</div>
+          <div class="v3wc-label">زين كاش</div>
+          <div class="v3wc-value" id="w3-zain">0</div>
+          <div class="v3wc-sub" style="font-size:10px;color:var(--success)">اضغط للتفاصيل</div>
         </div>
       </div>
-      
+
       <!-- إجمالي المكافآت -->
       <div style="text-align:center; font-size:12px; color:var(--primary); margin-bottom:12px;" id="w5-total-bonuses-wrap">
         مكافآت الشركة: <span id="w5-total-bonuses">0</span>
       </div>
+
       
       <!-- ── ملخص اليوم ── -->
       <div class="section-header">
@@ -783,9 +784,139 @@
     </div>
   </div>
 
+  <!-- ══ بوابة الصباح 🌅 ══ -->
+  <div id="modal-morning-gateway" class="modal-overlay">
+    <div class="modal-sheet" role="dialog" style="max-height:90vh; overflow-y:auto;">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🌅 صباح الخير — أرصدة اليوم</div>
+      <p style="text-align:center;font-size:13px;color:var(--text-muted);margin:0 16px 16px;">
+        أدخل أرصدتك الحالية لبدء يوم جديد. سيكتشف التطبيق أي مكافآت أو تغييرات تلقائياً! 🎁
+      </p>
+
+      <div class="edit-group">
+        <div class="edit-label">رصيد بلي الآن 📱</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;" id="gw-prev-baly">أول مرة</div>
+        <input class="edit-input" id="gw-baly-balance" type="number" inputmode="numeric"
+               placeholder="مثال: -4900 أو 1500 أو 0">
+      </div>
+
+      <div class="edit-group">
+        <div class="edit-label">رصيد زين كاش الآن 💚</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;" id="gw-prev-zain">أول مرة</div>
+        <input class="edit-input" id="gw-zain-balance" type="number" inputmode="numeric"
+               placeholder="مثال: 28000 أو 0">
+      </div>
+
+      <div class="modal-actions" style="gap:10px;">
+        <button class="modal-btn modal-btn-primary" onclick="App.saveMorningGateway()" style="flex:2;">
+          ✅ تسجيل وبدء اليوم
+        </button>
+        <button class="modal-btn" onclick="App.skipMorningGateway()" 
+                style="flex:1;background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:13px;">
+          تخطي
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ محفظة زين كاش الكاملة 💚 ══ -->
+  <div id="modal-zain-wallet" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog" style="max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-handle"></div>
+      <div class="modal-title">💚 محفظة زين كاش</div>
+
+      <!-- الرصيد الحالي -->
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:16px;margin:0 16px 16px;padding:16px;text-align:center;">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;">الرصيد الحالي</div>
+        <div id="zw-balance" style="font-size:32px;font-weight:900;color:var(--success);">0</div>
+        <div style="font-size:12px;color:var(--text-muted);">دينار عراقي</div>
+      </div>
+
+      <!-- إحصائيات الأسبوع والشهر -->
+      <div class="today-stats-grid" style="margin:0 16px 12px;">
+        <div class="stat-card">
+          <div class="stat-label">إيداع هذا الأسبوع</div>
+          <div class="stat-value success" id="zw-week-in">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">مصروف هذا الأسبوع</div>
+          <div class="stat-value danger" id="zw-week-out">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">إيداع هذا الشهر</div>
+          <div class="stat-value success" id="zw-month-in">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">مصروف هذا الشهر</div>
+          <div class="stat-value danger" id="zw-month-out">0</div>
+        </div>
+      </div>
+
+      <!-- أزرار الإجراءات -->
+      <div style="display:flex;gap:10px;margin:0 16px 16px;">
+        <button class="modal-btn modal-btn-primary" onclick="App.openZainDeposit()" style="flex:1;background:rgba(34,197,94,0.2);color:var(--success);border:1px solid rgba(34,197,94,0.3);">
+          📥 إيداع
+        </button>
+        <button class="modal-btn modal-btn-danger" onclick="App.openZainExpense()" style="flex:1;">
+          💸 مصروف
+        </button>
+      </div>
+
+      <!-- سجل الحركات -->
+      <div style="font-size:14px;font-weight:700;color:var(--text-muted);padding:0 16px 8px;">سجل الحركات</div>
+      <div id="zw-tx-list" style="flex:1;overflow-y:auto;padding:0 16px;"></div>
+    </div>
+  </div>
+
+  <!-- إيداع في زين كاش -->
+  <div id="modal-zain-deposit" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📥 إيداع في زين كاش</div>
+      <div class="edit-group">
+        <div class="edit-label">المبلغ (دينار)</div>
+        <input class="edit-input" id="zd-amount" type="number" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">ملاحظة (اختياري)</div>
+        <input class="edit-input" id="zd-note" type="text" placeholder="مثال: تحويل من النقد، مكافأة...">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="App.confirmZainDeposit()" style="background:var(--success);">
+          📥 تأكيد الإيداع
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- مصروف من زين كاش -->
+  <div id="modal-zain-expense" class="modal-overlay" onclick="if(event.target===this)App.close()">
+    <div class="modal-sheet" role="dialog">
+      <div class="modal-handle"></div>
+      <div class="modal-title">💸 مصروف من زين كاش</div>
+      <div class="edit-group">
+        <div class="edit-label">المبلغ (دينار)</div>
+        <input class="edit-input" id="ze-amount" type="number" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">نوع المصروف</div>
+        <input class="edit-input" id="ze-category" type="text" placeholder="مثال: إنترنت، إيجار، مشتريات...">
+      </div>
+      <div class="edit-group">
+        <div class="edit-label">ملاحظة (اختياري)</div>
+        <input class="edit-input" id="ze-note" type="text" placeholder="تفاصيل إضافية...">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-danger" onclick="App.confirmZainExpense()">
+          💸 تأكيد المصروف
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /app -->
 
 <!-- JavaScript بـ ES Modules -->
-<script type="module" src="./src/app.js?v=6.0.7"></script>
+<script type="module" src="./src/app.js?v=7.0.0"></script>
 </body>
 </html>

@@ -1,15 +1,15 @@
 /**
- * wallet.js — إدارة المحفظة والميزانية ومصاريف المنزل
+ * wallet.js — إدارة المحفظة الذكية الشاملة v7.0
+ * صناديق + زين كاش + بلي + بوابة الصباح
  */
 
 import { Database } from '../db/database.js';
 import { Reports }  from './reports.js';
 import { Formatter } from '../utils/formatter.js';
-
-
 import { BalyBalance } from './balyBalance.js';
 import { Settings, KEYS } from './settings.js';
-
+import { DailyBalance } from './dailyBalance.js';
+import { ZainWallet } from './zainWallet.js';
 
 export const Wallet = {
 
@@ -21,13 +21,13 @@ export const Wallet = {
 
   async addEnvelope({ name, icon = '💰', target = 0, monthlyTarget = 0, dailyTarget = 0 }) {
     const id = 'env_' + Date.now();
-    const env = { 
-      id, name, icon, 
-      target: monthlyTarget || target, 
-      monthlyTarget: monthlyTarget || target, 
-      dailyTarget, 
-      balance: 0, 
-      createdAt: Date.now() 
+    const env = {
+      id, name, icon,
+      target: monthlyTarget || target,
+      monthlyTarget: monthlyTarget || target,
+      dailyTarget,
+      balance: 0,
+      createdAt: Date.now()
     };
     await Database.putEnvelope(env);
     return env;
@@ -44,15 +44,10 @@ export const Wallet = {
   // ── حركة الأموال ─────────────────────────────
 
   /**
-   * تحويل مبلغ من الرصيد الحر إلى صندوق
+   * تحويل مبلغ من الرصيد إلى صندوق
+   * allowNegative = true → يسمح حتى لو رصيد الصندوق سيصبح موجباً بعد عملية السحب من خارج
    */
-  async transferToEnvelope(envelopeId, amount, note = '') {
-    // التحقق من توفر النقد الحر الكافي
-    const stats = await this.getStats();
-    if (amount > 0 && stats.unallocated < amount) {
-      throw new Error('المبلغ أكبر من النقد الحر المتوفر');
-    }
-
+  async transferToEnvelope(envelopeId, amount, note = '', allowNegativeSource = true) {
     const envelopes = await this.getEnvelopes();
     const env = envelopes.find(e => e.id === envelopeId);
     if (!env) throw new Error('الصندوق غير موجود');
@@ -60,9 +55,8 @@ export const Wallet = {
     env.balance += amount;
     await this.updateEnvelope(env);
 
-    // تسجيل الحركة
     await Database.addWalletTransaction({
-      type: amount > 0 ? 'deposit_to_env' : 'withdraw_from_env',
+      type: 'deposit_to_env',
       envelopeId,
       amount: Math.abs(amount),
       note,
@@ -72,19 +66,17 @@ export const Wallet = {
   },
 
   /**
-   * تسجيل مصروف من صندوق معين (مثلاً مصروف منزل)
+   * تسجيل مصروف من صندوق معين — يسمح بالسالب (دين)
    */
   async addExpenseFromEnvelope(envelopeId, amount, note = '') {
     const envelopes = await this.getEnvelopes();
     const env = envelopes.find(e => e.id === envelopeId);
     if (!env) throw new Error('الصندوق غير موجود');
 
-    if (env.balance < amount) throw new Error('الرصيد في الصندوق لا يكفي');
-
+    // مسموح بالرصيد السالب (دين على الصندوق)
     env.balance -= amount;
     await this.updateEnvelope(env);
 
-    // تسجيل كمصروف عام من المحفظة
     await Database.addWalletTransaction({
       type: 'envelope_expense',
       envelopeId,
@@ -94,24 +86,56 @@ export const Wallet = {
       date: Formatter.todayKey()
     });
 
-    // إذا كان هذا صندوق المنزل، نسجله أيضاً في مصاريف المنزل للتفصيل
     if (env.isHome) {
       await Database.addHomeExpense({
-        amount,
-        note,
+        amount, note,
         timestamp: Date.now(),
         date: Formatter.todayKey(),
-        month: Formatter.dateKey(Date.now()).substring(0, 7) // YYYY-MM
+        month: Formatter.dateKey(Date.now()).substring(0, 7)
       });
     }
   },
 
-  /** جلب الحركات (Transactions) الخاصة بصندوق معين */
+  /** جلب الحركات الخاصة بصندوق معين مع إحصائيات */
   async getTransactions(envelopeId) {
     const txs = await Database.getAllWalletTransactions();
     return txs
       .filter(t => t.envelopeId === envelopeId)
-      .sort((a, b) => b.timestamp - a.timestamp); // الأحدث أولاً
+      .sort((a, b) => b.timestamp - a.timestamp);
+  },
+
+  /** إحصائيات صندوق معين: أسبوعي، شهري */
+  async getEnvelopeStats(envelopeId) {
+    const txs = await this.getTransactions(envelopeId);
+    const now = new Date();
+
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoKey = weekAgo.toISOString().split('T')[0];
+
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const weekTxs  = txs.filter(tx => (tx.date || '') >= weekAgoKey);
+    const monthTxs = txs.filter(tx => (tx.date || '').startsWith(monthKey));
+
+    const sum = (list, type) => list.filter(tx => tx.type === type).reduce((s, tx) => s + (tx.amount || 0), 0);
+
+    return {
+      weekly: {
+        deposited: sum(weekTxs, 'deposit_to_env'),
+        spent:     sum(weekTxs, 'envelope_expense'),
+        count:     weekTxs.length,
+      },
+      monthly: {
+        deposited: sum(monthTxs, 'deposit_to_env'),
+        spent:     sum(monthTxs, 'envelope_expense'),
+        count:     monthTxs.length,
+      },
+      total: {
+        deposited: sum(txs, 'deposit_to_env'),
+        spent:     sum(txs, 'envelope_expense'),
+      }
+    };
   },
 
   /** حذف حركة من سجل الصندوق واسترجاع الرصيد */
@@ -122,13 +146,10 @@ export const Wallet = {
 
     const envs = await this.getEnvelopes();
     const env = envs.find(e => e.id === tx.envelopeId);
-    
+
     if (env) {
-      // عكس تأثير العملية على رصيد القاصة
       if (tx.type === 'deposit_to_env') {
         env.balance -= tx.amount;
-      } else if (tx.type === 'withdraw_from_env') {
-        env.balance += tx.amount;
       } else if (tx.type === 'envelope_expense') {
         env.balance += tx.amount;
       }
@@ -138,21 +159,21 @@ export const Wallet = {
     await Database.deleteWalletTransaction(txId);
   },
 
-  // ── الإحصائيات والأرصدة ────────────────────────
+  // ── الإحصائيات والأرصدة الكاملة ────────────────────
 
   async getStats() {
-    // جلب كل البيانات معاً
-    const [taxiStats, envelopes, txs, allBalySnaps, allTransfers, cashAdj, zainAdj] = await Promise.all([
+    const [taxiStats, envelopes, txs, latestDailyBalance, allBalySnaps, allTransfers, cashAdj, zainAdj] = await Promise.all([
       Reports.getAllTimeStats(),
       this.getEnvelopes(),
       Database.getAllWalletTransactions(),
+      DailyBalance.getLatest(),
       BalyBalance.getAll(),
       Database.getAllTransfers(),
       Settings.get(KEYS.CASH_ADJUST),
       Settings.get(KEYS.ZAIN_ADJUST)
     ]);
 
-    const allTransfersSum = allTransfers.reduce((s,t) => s+(t.amount||0), 0);
+    const allTransfersSum = allTransfers.reduce((s, t) => s + (t.amount || 0), 0);
 
     // ── صافي الأرباح الحقيقي ──────────────────────────────
     const adjustedNetProfit = (taxiStats.netProfit || 0);
@@ -161,31 +182,47 @@ export const Wallet = {
     const cashInHand = (taxiStats.cashInHand || 0) + (cashAdj || 0);
 
     // ── رصيد بلي ──────────────────────────────────────────
-    // إذا سجّل المستخدم رصيده من التطبيق → استخدم تلك اللقطة
-    // وإلا → احسب بالطريقة القديمة (للتوافق مع البيانات القديمة)
-    const latestBalySnap = allBalySnaps.length > 0
-      ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0]
-      : null;
-    const balyBalance = latestBalySnap !== null
-      ? (latestBalySnap.balance || 0)
-      : ((taxiStats.appBalance || 0) + allTransfersSum);
+    // الأولوية: لقطة الصباح اليومية > لقطة baly_snapshots القديمة > الحساب التلقائي
+    let balyBalance;
+    if (latestDailyBalance) {
+      balyBalance = latestDailyBalance.balyBalance || 0;
+    } else {
+      const latestBalySnap = allBalySnaps.length > 0
+        ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0]
+        : null;
+      balyBalance = latestBalySnap !== null
+        ? (latestBalySnap.balance || 0)
+        : ((taxiStats.appBalance || 0) + allTransfersSum);
+    }
 
-    // ── زين كاش (محسوب تلقائياً) ──────────────────────────
-    // زين كاش = صافي الربح (الأصلي) - الكاش المحسوب بدون تعديل - رصيد بلي
-    // لكن بما أن cashInHand تم تعديله، الأفضل حساب زين كاش على الحقيقي، ثم إضافة تعديله
-    // زين كاش = (الربح - النقد الأصلي - بلي) + تعديل زين كاش
-    const baseZainCash = adjustedNetProfit - (taxiStats.cashInHand || 0) - balyBalance;
-    const zainCashBalance = baseZainCash + (zainAdj || 0);
+    // ── رصيد زين كاش ──────────────────────────────────────
+    // الأولوية: لقطة الصباح اليومية > الحساب التلقائي القديم
+    let zainCashBalance;
+    if (latestDailyBalance) {
+      // استخدم رصيد الصباح + المعاملات التي حدثت بعده
+      const zainTxs = await Database.getAllZainTransactions();
+      const baseDate = latestDailyBalance.date;
+      const txsAfter = zainTxs.filter(tx => (tx.date || '') >= baseDate);
+      const txSum = txsAfter.reduce((s, tx) => {
+        if (tx.type === 'credit') return s + (tx.amount || 0);
+        if (tx.type === 'debit')  return s - (tx.amount || 0);
+        return s;
+      }, 0);
+      zainCashBalance = (latestDailyBalance.zainCashBalance || 0) + txSum;
+    } else {
+      const baseZainCash = adjustedNetProfit - (taxiStats.cashInHand || 0) - balyBalance;
+      zainCashBalance = baseZainCash + (zainAdj || 0);
+    }
 
     // ── صناديق الأموال ─────────────────────────────────────
-    const totalInEnvelopes    = envelopes.reduce((s,e) => s+(e.balance||0), 0);
-    const totalWalletExpenses = txs.filter(t=>t.type==='envelope_expense').reduce((s,t)=>s+t.amount,0);
+    const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
+    const totalWalletExpenses = txs.filter(t => t.type === 'envelope_expense').reduce((s, t) => s + t.amount, 0);
     const currentPhysicalCash = cashInHand - totalWalletExpenses;
-    const unallocated         = currentPhysicalCash - totalInEnvelopes;
+    const unallocated = currentPhysicalCash - totalInEnvelopes;
 
     return {
-      netProfit:        adjustedNetProfit,
-      appBalance:       balyBalance,
+      netProfit:          adjustedNetProfit,
+      appBalance:         balyBalance,
       balyBalance,
       cashInHand,
       zainCashBalance,
@@ -196,8 +233,8 @@ export const Wallet = {
       totalTaxiCash:      adjustedNetProfit,
       totalExpenses:      taxiStats.totalExpenses || 0,
       totalTransfers:     allTransfersSum,
-      latestBalySnap,
-      hasBalySnapshot:    latestBalySnap !== null,
+      latestDailyBalance,
+      hasBalySnapshot:    latestDailyBalance !== null,
     };
   },
 
@@ -206,11 +243,10 @@ export const Wallet = {
   async getHomeExpenses(year, month) {
     const monthKey = `${year}-${String(month).padStart(2, '0')}`;
     const list = await Database.getHomeExpensesByMonth(monthKey);
-    return list.sort((a, b) => b.timestamp - a.timestamp); // الأحدث أولاً
+    return list.sort((a, b) => b.timestamp - a.timestamp);
   },
 
   async deleteHomeExpense(id) {
-    // لا نعيد المبلغ للصندوق تلقائياً هنا لتجنب التعقيد، يمكن للمستخدم إضافة مبلغ يدوياً للصندوق
     return Database.deleteHomeExpense(id);
   }
 };

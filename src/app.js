@@ -12,6 +12,8 @@ import { Settings, KEYS }        from './modules/settings.js';
 import { Wallet }                from './modules/wallet.js';
 import { Formatter }             from './utils/formatter.js';
 import { BalyBalance }           from './modules/balyBalance.js';
+import { DailyBalance }          from './modules/dailyBalance.js';
+import { ZainWallet }            from './modules/zainWallet.js';
 // ══════════════════════════════════════════════════
 // الحالة العامة للتطبيق
 // ══════════════════════════════════════════════════
@@ -1435,6 +1437,213 @@ function initBackButton() {
 }
 
 // ══════════════════════════════════════════════════
+// بوابة الصباح — Morning Gateway
+// ══════════════════════════════════════════════════
+
+/**
+ * تفتح بوابة الصباح عند بدء يوم عمل جديد
+ * تطلب رصيد بلي + زين كاش قبل السماح بتسجيل رحلات
+ */
+async function checkMorningGateway() {
+  const hasEntry = await DailyBalance.hasEntryForToday();
+  if (hasEntry) return; // تم التسجيل بالفعل، لا حاجة للبوابة
+
+  // احضر أرقام الأمس للمقارنة
+  const latest = await DailyBalance.getLatest();
+  const prevBaly = latest ? latest.balyBalance : null;
+  const prevZain = latest ? latest.zainCashBalance : null;
+
+  // أظهر البوابة
+  openMorningGateway(prevBaly, prevZain);
+}
+
+function openMorningGateway(prevBaly, prevZain) {
+  const prevBalyEl = $('#gw-prev-baly');
+  const prevZainEl = $('#gw-prev-zain');
+  if (prevBalyEl) prevBalyEl.textContent = prevBaly !== null ? `الأمس: ${Formatter.num(prevBaly)} د.ع` : 'أول مرة';
+  if (prevZainEl) prevZainEl.textContent = prevZain !== null ? `الأمس: ${Formatter.num(prevZain)} د.ع` : 'أول مرة';
+
+  const balyInput = $('#gw-baly-balance');
+  const zainInput = $('#gw-zain-balance');
+  if (balyInput) balyInput.value = '';
+  if (zainInput) zainInput.value = '';
+
+  // إظهار البوابة
+  openModal('morning-gateway');
+  setTimeout(() => balyInput?.focus(), 300);
+}
+
+async function saveMorningGateway() {
+  const balyRaw = $('#gw-baly-balance')?.value?.trim();
+  const zainRaw = $('#gw-zain-balance')?.value?.trim();
+
+  if (balyRaw === '' || balyRaw === undefined) {
+    alert('يرجى إدخال رصيد بلي الحالي (يمكن أن يكون سالباً أو صفر)');
+    return;
+  }
+  if (zainRaw === '' || zainRaw === undefined) {
+    alert('يرجى إدخال رصيد زين كاش الحالي (يمكن أن يكون صفر)');
+    return;
+  }
+
+  const balyBalance = Formatter.parseArNum(balyRaw);
+  const zainCashBalance = Formatter.parseArNum(zainRaw);
+
+  if (isNaN(balyBalance) || isNaN(zainCashBalance)) {
+    alert('يرجى إدخال أرقام صحيحة');
+    return;
+  }
+
+  try {
+    // كشف المكافآت المحتملة
+    const bonuses = await DailyBalance.detectBonuses({ newBalyBalance: balyBalance, newZainCashBalance: zainCashBalance });
+
+    // حفظ البوابة
+    await DailyBalance.recordToday({ balyBalance, zainCashBalance, note: 'بوابة الصباح' });
+
+    closeModal('morning-gateway');
+
+    // إذا اكتُشفت مكافآت، أبلغ المستخدم
+    let bonusMsg = '';
+    if (bonuses.balyBonus > 0) bonusMsg += `📱 بلي +${Formatter.num(bonuses.balyBonus)} د.ع\n`;
+    if (bonuses.zainBonus > 0) bonusMsg += `💚 زين كاش +${Formatter.num(bonuses.zainBonus)} د.ع\n`;
+    if (bonusMsg) {
+      setTimeout(() => {
+        flashToast(`🎁 اكتُشفت مكافآت! ${bonusMsg.trim()}`, '');
+      }, 500);
+    } else {
+      flashToast('✅ تم تسجيل أرصدة اليوم — صباح الخير! 🌅', '');
+    }
+
+    if (S.screen === 'wallet') renderWallet();
+  } catch (e) {
+    alert('خطأ أثناء الحفظ: ' + e.message);
+  }
+}
+
+// تخطي البوابة (في حالات الضرورة)
+function skipMorningGateway() {
+  closeModal('morning-gateway');
+  flashToast('⚠️ تنبيه: أرصدة اليوم لم تُسجَّل بعد', '');
+}
+
+// ══════════════════════════════════════════════════
+// محفظة زين كاش — Zain Cash Wallet
+// ══════════════════════════════════════════════════
+
+async function openZainWallet() {
+  await renderZainWalletDetails();
+  openModal('zain-wallet');
+}
+
+async function renderZainWalletDetails() {
+  const [balance, txs, weekStats, monthStats] = await Promise.all([
+    ZainWallet.getBalance(),
+    ZainWallet.getTransactions(),
+    ZainWallet.getWeeklyStats(),
+    ZainWallet.getMonthlyStats(),
+  ]);
+
+  const balEl = $('#zw-balance');
+  if (balEl) {
+    balEl.textContent = Formatter.num(balance);
+    balEl.style.color = balance >= 0 ? 'var(--primary)' : 'var(--danger)';
+  }
+  setEl('#zw-week-in',    Formatter.num(weekStats.income));
+  setEl('#zw-week-out',   Formatter.num(weekStats.expense));
+  setEl('#zw-month-in',   Formatter.num(monthStats.income));
+  setEl('#zw-month-out',  Formatter.num(monthStats.expense));
+
+  const listEl = $('#zw-tx-list');
+  if (!listEl) return;
+
+  if (!txs.length) {
+    listEl.innerHTML = `
+      <div class="empty-state" style="margin:12px 0">
+        <div class="empty-icon">💚</div>
+        <div class="empty-text">لا توجد حركات بعد</div>
+        <div class="empty-sub">سجّل مصاريف زين كاش أو إيداعات منها</div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = txs.map(tx => {
+    const isCredit = tx.type === 'credit';
+    const color = isCredit ? 'var(--success)' : 'var(--danger)';
+    const sign  = isCredit ? '+' : '-';
+    const icon  = isCredit ? '📥' : '💸';
+    const label = isCredit ? 'إيداع' : 'مصروف';
+    return `
+      <div class="trip-card fade-up" style="border-right:4px solid ${color};padding-right:12px">
+        <div class="trip-num" style="background:transparent;font-size:20px">${icon}</div>
+        <div class="trip-info">
+          <div class="trip-amount" style="color:${color}">${sign}${Formatter.num(tx.amount)} <small>د.ع</small></div>
+          <div class="trip-badges">
+            <span class="badge" style="background:var(--card-alt);color:var(--text-muted)">${label}</span>
+            ${tx.category && tx.category !== 'deposit' && tx.category !== 'expense' ? `<span class="badge badge-note">${tx.category}</span>` : ''}
+            ${tx.note ? `<span class="badge badge-note">📝 ${tx.note}</span>` : ''}
+          </div>
+        </div>
+        <div class="trip-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div class="trip-time">${Formatter.fullDateAr(tx.date || Formatter.dateKey(tx.timestamp || Date.now()))}</div>
+          <button class="small-btn" style="background:rgba(239,68,68,0.1);color:var(--danger);font-size:11px"
+                  onclick="App.deleteZainTx('${tx.id}')">حذف</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openZainDeposit() {
+  $('#zd-amount').value = '';
+  $('#zd-note').value = '';
+  openModal('zain-deposit');
+}
+
+async function confirmZainDeposit() {
+  const amount = Formatter.parseArNum($('#zd-amount')?.value);
+  const note   = $('#zd-note')?.value?.trim() || '';
+  if (!amount || amount <= 0) { alert('يرجى إدخال المبلغ'); return; }
+  try {
+    await ZainWallet.deposit({ amount, note });
+    closeModal('zain-deposit');
+    flashToast(`💚 تم إيداع ${Formatter.num(amount)} في زين كاش`, '');
+    await renderZainWalletDetails();
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) { alert(e.message); }
+}
+
+function openZainExpense() {
+  $('#ze-amount').value = '';
+  $('#ze-note').value = '';
+  $('#ze-category').value = '';
+  openModal('zain-expense');
+}
+
+async function confirmZainExpense() {
+  const amount   = Formatter.parseArNum($('#ze-amount')?.value);
+  const note     = $('#ze-note')?.value?.trim() || '';
+  const category = $('#ze-category')?.value?.trim() || 'expense';
+  if (!amount || amount <= 0) { alert('يرجى إدخال المبلغ'); return; }
+  try {
+    await ZainWallet.expense({ amount, note, category });
+    closeModal('zain-expense');
+    flashToast(`💸 تم تسجيل مصروف ${Formatter.num(amount)} من زين كاش`, '');
+    await renderZainWalletDetails();
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) { alert(e.message); }
+}
+
+async function deleteZainTx(id) {
+  if (!confirm('هل تريد حذف هذه العملية؟')) return;
+  try {
+    await ZainWallet.deleteTransaction(id);
+    flashToast('✅ تم الحذف', '');
+    await renderZainWalletDetails();
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) { alert(e.message); }
+}
+
+// ══════════════════════════════════════════════════
 // تهيئة التطبيق
 // ══════════════════════════════════════════════════
 async function init() {
@@ -1455,7 +1664,11 @@ async function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
+
+  // فحص بوابة الصباح بعد لحظة
+  setTimeout(() => checkMorningGateway(), 1200);
 }
+
 
 // ══════════════════════════════════════════════════
 // الواجهة العامة — تُستدعى من HTML
@@ -1545,6 +1758,19 @@ window.App = {
 
   // إغلاق النوافذ
   close: () => closeAllModals(),
+
+  // بوابة الصباح
+  saveMorningGateway: () => saveMorningGateway(),
+  skipMorningGateway: () => skipMorningGateway(),
+  openMorningGateway: () => checkMorningGateway(),
+
+  // محفظة زين كاش
+  openZainWallet:      () => openZainWallet(),
+  openZainDeposit:     () => openZainDeposit(),
+  confirmZainDeposit:  () => confirmZainDeposit(),
+  openZainExpense:     () => openZainExpense(),
+  confirmZainExpense:  () => confirmZainExpense(),
+  deleteZainTx:        (id) => deleteZainTx(id),
 };
 
 // بدء التطبيق
