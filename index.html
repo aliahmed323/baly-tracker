@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="./assets/styles/main.css?v=3.0.0">
+  <link rel="stylesheet" href="./assets/styles/main.css?v=7.0.0">
 </head>
 
 <body>
@@ -183,9 +183,14 @@
   <div id="screen-wallet" class="screen">
     <div class="screen-header" style="justify-content: space-between; padding-left: 16px;">
       <h1>المحفظة 💼</h1>
-      <button onclick="App.openWalletAdjustment()" style="background:none; border:none; color:var(--text-muted); font-size:12px; font-weight:bold; cursor:pointer; padding:8px;">
-        ⚙️ تسوية الأرصدة
-      </button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button onclick="App.openMorningGateway()" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--primary);font-size:11px;font-weight:bold;cursor:pointer;padding:6px 10px;border-radius:20px;">
+          🌅 أرصدة اليوم
+        </button>
+        <button onclick="App.openWalletAdjustment()" style="background:none;border:none;color:var(--text-muted);font-size:12px;font-weight:bold;cursor:pointer;padding:8px;">
+          ⚙️
+        </button>
+      </div>
     </div>
     <div class="screen-content">
 
@@ -363,7 +368,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v6.0 — شاشة العمليات والصناديق</div>
+              <div class="settings-subtitle">بلي v7.0.0 — المحفظة الذكية الشاملة 🏦</div>
             </div>
           </div>
         </div>

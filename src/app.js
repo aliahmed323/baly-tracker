@@ -1445,16 +1445,24 @@ function initBackButton() {
  * تطلب رصيد بلي + زين كاش قبل السماح بتسجيل رحلات
  */
 async function checkMorningGateway() {
-  const hasEntry = await DailyBalance.hasEntryForToday();
-  if (hasEntry) return; // تم التسجيل بالفعل، لا حاجة للبوابة
+  try {
+    const hasEntry = await DailyBalance.hasEntryForToday();
+    console.log('[Gateway] hasEntryForToday:', hasEntry);
+    if (hasEntry) return; // تم التسجيل بالفعل
 
-  // احضر أرقام الأمس للمقارنة
-  const latest = await DailyBalance.getLatest();
-  const prevBaly = latest ? latest.balyBalance : null;
-  const prevZain = latest ? latest.zainCashBalance : null;
+    // احضر أرقام الأمس للمقارنة
+    const latest = await DailyBalance.getLatest();
+    console.log('[Gateway] latest:', latest);
+    const prevBaly = latest ? latest.balyBalance : null;
+    const prevZain = latest ? latest.zainCashBalance : null;
 
-  // أظهر البوابة
-  openMorningGateway(prevBaly, prevZain);
+    // أظهر البوابة
+    openMorningGateway(prevBaly, prevZain);
+  } catch(e) {
+    console.error('[Gateway] Error:', e);
+    // حتى لو في خطأ، افتح البوابة
+    openMorningGateway(null, null);
+  }
 }
 
 function openMorningGateway(prevBaly, prevZain) {
