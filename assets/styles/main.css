@@ -1882,3 +1882,23 @@ input, textarea, button {
 /* Baly card clickable */
 .v3-wallet-card.baly { cursor: pointer; }
 .v3-wallet-card.baly:active { transform: scale(0.95); }
+
+/* ===== Mini Bank v8.0 ===== */
+.env-cat-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.env-cat-btn.active,
+.env-cat-btn:active {
+  background: var(--primary-glow);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+}
