@@ -1728,6 +1728,12 @@ window.App = {
   openEnvDetails:     (id) => openEnvDetails(id),
   deleteEnvTransaction: (txId, envId) => deleteEnvTransaction(txId, envId),
 
+  // Mini Bank v8.0 - النظام المالي الكامل للقاصات
+  switchEnvTab:    (tab)  => switchEnvTab(tab),
+  envBankAdd:      (type) => envBankAdd(type),
+  pickEnvCat:      (cat)  => pickEnvCat(cat),
+  confirmEnvBankAdd: () => confirmEnvBankAdd(),
+
   // حذف مباشر من البطاقات
   deleteExpenseItem:  (id) => deleteExpenseItem(id),
   deleteTransferItem: (id) => deleteTransferItem(id),
