@@ -1117,51 +1117,226 @@ async function saveNewEnvelope() {
   if (S.screen === 'wallet') renderWallet();
 }
 
-// ── تفاصيل وسجل القاصة ─────────────────────────
+// ══════════════════════════════════════════════════
+// النظام المالي المتكامل للقاصات (Mini Bank v8.0)
+// ══════════════════════════════════════════════════
+
+const ENV_TX_TYPES = {
+  income:       { label: 'دخل', icon: '➕', color: 'var(--success)', sign: '+', effect: +1 },
+  expense:      { label: 'مصروف', icon: '💸', color: 'var(--danger)', sign: '-', effect: -1 },
+  transfer_in:  { label: 'تحويل وارد', icon: '⬇️', color: '#60a5fa', sign: '+', effect: +1 },
+  transfer_out: { label: 'تحويل صادر', icon: '⬆️', color: '#f97316', sign: '-', effect: -1 },
+  deposit_to_env:   { label: 'إيداع', icon: '📥', color: 'var(--success)', sign: '+', effect: +1 },
+  envelope_expense: { label: 'مصروف', icon: '💸', color: 'var(--danger)', sign: '-', effect: -1 },
+};
+
+const ENV_INCOME_CATS  = ['راتب','مكافأة','هدية','استرداد','بيع','دخل آخر'];
+const ENV_EXPENSE_CATS = ['إيجار','طعام','صحة','ملابس','ترفيه','مواصلات','كهرباء','مشتريات','هاتف','أخرى'];
+
 async function openEnvDetails(envelopeId) {
   const envs = await Wallet.getEnvelopes();
-  const env = envs.find(e => e.id === envelopeId);
+  const env  = envs.find(e => e.id === envelopeId);
   if (!env) return;
-
   S.selectedEnv = envelopeId;
-  $('#env-details-title').textContent = `سجل ${env.name} ${env.icon}`;
-  $('#env-details-balance').textContent = Formatter.num(env.balance);
+  S._envActiveTab = 'overview';
+  await _renderEnvBank(env, 'overview');
+  openModal('env-bank');
+}
 
-  const txs = await Wallet.getTransactions(envelopeId);
-  const container = $('#env-tx-list');
-  
-  if (!txs.length) {
-    container.innerHTML = `
-      <div class="empty-state" style="margin-top:20px;">
-        <div class="empty-icon">📝</div>
-        <div class="empty-text">لا توجد حركات بعد</div>
+async function _renderEnvBank(env, tab) {
+  if (!env) {
+    const envs = await Wallet.getEnvelopes();
+    env = envs.find(e => e.id === S.selectedEnv);
+    if (!env) return;
+  }
+  const activeTab = tab || S._envActiveTab || 'overview';
+  S._envActiveTab = activeTab;
+
+  const txs   = await Wallet.getTransactions(env.id);
+  const stats = await Wallet.getEnvelopeStats(env.id);
+
+  const balColor = (env.balance || 0) >= 0 ? 'var(--success)' : 'var(--danger)';
+  const monthly  = env.monthlyTarget || env.target || 0;
+  const pct = monthly > 0 ? Math.min(100, Math.round(((env.balance || 0) / monthly) * 100)) : 0;
+  const pctColor = pct >= 100 ? 'var(--success)' : pct >= 60 ? 'var(--primary)' : '#f97316';
+
+  const header = $('#env-bank-header');
+  if (header) {
+    header.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:30px">${env.icon}</span>
+          <div>
+            <div style="font-size:17px;font-weight:800;color:var(--text)">${env.name}</div>
+            <div style="font-size:11px;color:var(--text-muted)">بنك شخصي</div>
+          </div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:28px;font-weight:900;color:${balColor};direction:ltr">${Formatter.num(env.balance || 0)}</div>
+          <div style="font-size:11px;color:var(--text-muted)">د.ع الرصيد</div>
+        </div>
+      </div>
+      ${monthly > 0 ? `
+        <div style="padding:0 16px 10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:11px;color:var(--text-muted)">الهدف الشهري: ${Formatter.num(monthly)} د.ع</span>
+            <span style="font-size:12px;font-weight:800;color:${pctColor}">${pct}%</span>
+          </div>
+          <div style="height:8px;border-radius:8px;background:rgba(255,255,255,0.07)">
+            <div style="width:${pct}%;height:100%;border-radius:8px;background:linear-gradient(90deg,${pctColor}88,${pctColor});transition:width 0.4s"></div>
+          </div>
+        </div>` : ''}
+      <div style="display:flex;gap:6px;padding:4px 16px 14px;">
+        <button style="flex:1;background:rgba(34,197,94,0.15);color:var(--success);border:1px solid rgba(34,197,94,0.3);border-radius:20px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="App.envBankAdd('income')">➕ دخل</button>
+        <button style="flex:1;background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.25);border-radius:20px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="App.envBankAdd('expense')">💸 مصروف</button>
+        <button style="flex:1;background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.25);border-radius:20px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="App.envBankAdd('transfer_in')">⬇️ وارد</button>
+        <button style="flex:1;background:rgba(249,115,22,0.12);color:#f97316;border:1px solid rgba(249,115,22,0.25);border-radius:20px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="App.envBankAdd('transfer_out')">⬆️ صادر</button>
       </div>`;
-  } else {
-    container.innerHTML = txs.map(tx => {
-      const isDeposit = tx.type === 'deposit_to_env';
-      const color = isDeposit ? 'var(--success)' : 'var(--danger)';
-      const icon = isDeposit ? '📥 إيداع' : '💸 صرف';
-      const sign = isDeposit ? '+' : '-';
-      
-      return `
-        <div class="trip-card fade-up" style="border-right: 4px solid ${color}; padding-right: 12px;">
-          <div class="trip-info">
-            <div class="trip-amount" style="color:${color}">${sign}${Formatter.num(tx.amount)} <small>د.ع</small></div>
-            <div class="trip-badges">
-              <span class="badge" style="background:var(--card-alt);color:var(--text-muted)">${icon}</span>
-              ${tx.note ? `<span class="badge badge-note">📝 ${tx.note}</span>` : ''}
-            </div>
-          </div>
-          <div class="trip-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-            <div class="trip-time">${Formatter.fullDateAr(tx.date || Formatter.dateKey(tx.timestamp || Date.now()))}</div>
-            <button class="small-btn" style="background:rgba(239,68,68,0.1);color:var(--danger);font-size:11px;" 
-                    onclick="App.deleteEnvTransaction('${tx.id}', '${envelopeId}')">حذف</button>
-          </div>
-        </div>`;
-    }).join('');
   }
 
-  openModal('env-details');
+  const TABS = [
+    { id:'overview', label:'لوحة التحكم' },
+    { id:'ledger',   label:'السجل الكامل' },
+  ];
+  let html = `<div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:8px">${TABS.map(t =>
+    `<button style="flex:1;padding:10px;background:none;border:none;border-bottom:3px solid ${activeTab===t.id ? 'var(--primary)' : 'transparent'};color:${activeTab===t.id ? 'var(--primary)' : 'var(--text-muted)'};font-weight:700;font-size:13px;cursor:pointer;font-family:inherit" onclick="App.switchEnvTab('${t.id}')">${t.label}</button>`
+  ).join('')}</div>`;
+
+  if (activeTab === 'overview') {
+    // إحصائيات
+    const allIncome  = txs.filter(t => t.type === 'income' || t.type === 'deposit_to_env' || t.type === 'transfer_in').reduce((s,t) => s + t.amount, 0);
+    const allExpense = txs.filter(t => t.type === 'expense' || t.type === 'envelope_expense' || t.type === 'transfer_out').reduce((s,t) => s + t.amount, 0);
+
+    html += `
+      <div class="today-stats-grid" style="margin:0 16px 12px">
+        <div class="stat-card">
+          <div class="stat-label">إجمالي الدخل</div>
+          <div class="stat-value success">+${Formatter.num(allIncome)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">إجمالي المصاريف</div>
+          <div class="stat-value danger">-${Formatter.num(allExpense)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">هذا الأسبوع</div>
+          <div class="stat-value" style="font-size:12px">
+            <span style="color:var(--success)">+${Formatter.num(stats.weekly.deposited)}</span><br>
+            <span style="color:var(--danger)">-${Formatter.num(stats.weekly.spent)}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">هذا الشهر</div>
+          <div class="stat-value" style="font-size:12px">
+            <span style="color:var(--success)">+${Formatter.num(stats.monthly.deposited)}</span><br>
+            <span style="color:var(--danger)">-${Formatter.num(stats.monthly.spent)}</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 16px 6px">
+        <span style="font-size:13px;font-weight:700;color:var(--text-muted)">آخر الحركات</span>
+        ${txs.length > 4 ? `<button style="font-size:12px;color:var(--primary);background:none;border:none;cursor:pointer;font-family:inherit" onclick="App.switchEnvTab('ledger')">عرض الكل (${txs.length})</button>` : ''}
+      </div>
+      <div style="padding:0 16px">${_renderEnvTxList(txs.slice(0,4), env.id)}</div>`;
+  } else {
+    html += `
+      <div style="padding:0 16px 8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:700;color:var(--text-muted)">جميع الحركات (${txs.length})</span>
+      </div>
+      <div style="padding:0 16px">${_renderEnvTxList(txs, env.id)}</div>`;
+  }
+
+  const content = $('#env-bank-content');
+  if (content) content.innerHTML = html;
+}
+
+function _renderEnvTxList(txs, envelopeId) {
+  if (!txs.length) return `
+    <div class="empty-state" style="margin:12px 0">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">لا توجد حركات بعد</div>
+      <div class="empty-sub">اضغط ➕ دخل أو 💸 مصروف لتبدأ تتبع أموالك</div>
+    </div>`;
+
+  return txs.map(tx => {
+    const meta = ENV_TX_TYPES[tx.type] || ENV_TX_TYPES['income'];
+    return `
+      <div class="trip-card fade-up" style="border-right:4px solid ${meta.color};padding-right:12px;margin-bottom:8px">
+        <div class="trip-num" style="background:transparent;font-size:18px;min-width:28px">${meta.icon}</div>
+        <div class="trip-info">
+          <div class="trip-amount" style="color:${meta.color};font-size:15px">${meta.sign}${Formatter.num(tx.amount)} <small>د.ع</small></div>
+          <div class="trip-badges">
+            <span class="badge" style="background:var(--card-alt);color:var(--text-muted)">${meta.label}</span>
+            ${tx.category ? `<span class="badge badge-note">🏷️ ${tx.category}</span>` : ''}
+            ${tx.note ? `<span class="badge badge-note">📝 ${tx.note}</span>` : ''}
+          </div>
+        </div>
+        <div class="trip-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="trip-time">${Formatter.fullDateAr(tx.date || Formatter.dateKey(tx.timestamp || Date.now()))}</div>
+          <button class="small-btn" style="background:rgba(239,68,68,0.1);color:var(--danger);font-size:11px" onclick="App.deleteEnvTransaction('${tx.id}','${envelopeId}')">حذف</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function switchEnvTab(tab) {
+  S._envActiveTab = tab;
+  const envs = await Wallet.getEnvelopes();
+  const env  = envs.find(e => e.id === S.selectedEnv);
+  if (env) await _renderEnvBank(env, tab);
+}
+
+let _envBankTxType = 'income';
+
+function envBankAdd(type) {
+  _envBankTxType = type;
+  const meta = ENV_TX_TYPES[type];
+  setEl('#eb-tx-title', `${meta.icon} ${meta.label}`);
+  const catGrid = $('#eb-cat-grid');
+  if (catGrid) {
+    const cats = (type === 'income' || type === 'transfer_in') ? ENV_INCOME_CATS : ENV_EXPENSE_CATS;
+    catGrid.innerHTML = cats.map(c =>
+      `<button class="env-cat-btn" onclick="App.pickEnvCat('${c}')">${c}</button>`
+    ).join('');
+  }
+  if ($('#eb-amount')) $('#eb-amount').value = '';
+  if ($('#eb-note'))   $('#eb-note').value = '';
+  if ($('#eb-category')) $('#eb-category').value = '';
+  if ($('#eb-date'))   $('#eb-date').value = Formatter.todayKey();
+  openModal('env-bank-add');
+  setTimeout(() => $('#eb-amount')?.focus(), 300);
+}
+
+function pickEnvCat(cat) {
+  if ($('#eb-category')) $('#eb-category').value = cat;
+  $$('.env-cat-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
+}
+
+async function confirmEnvBankAdd() {
+  const raw    = $('#eb-amount')?.value;
+  const amount = Formatter.parseArNum(raw);
+  const note   = $('#eb-note')?.value?.trim() || '';
+  const cat    = $('#eb-category')?.value?.trim() || '';
+  const date   = $('#eb-date')?.value || Formatter.todayKey();
+
+  if (!amount || amount <= 0) { alert('يرجى إدخال مبلغ صحيح'); return; }
+
+  const meta = ENV_TX_TYPES[_envBankTxType];
+  const envs = await Wallet.getEnvelopes();
+  const env  = envs.find(e => e.id === S.selectedEnv);
+  if (!env) return;
+
+  try {
+    env.balance = (env.balance || 0) + (meta.effect * amount);
+    await Wallet.updateEnvelope(env);
+    await Database.addWalletTransaction({
+      type: _envBankTxType, envelopeId: S.selectedEnv,
+      amount, note, category: cat, date, timestamp: Date.now(),
+    });
+    closeModal('env-bank-add');
+    flashToast(`${meta.icon} ${meta.label}: ${Formatter.num(amount)} د.ع`, '');
+    await _renderEnvBank(env, S._envActiveTab);
+    if (S.screen === 'wallet') renderWallet();
+  } catch(e) { alert(e.message); }
 }
 
 async function deleteEnvTransaction(txId, envelopeId) {
