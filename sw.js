@@ -1,17 +1,21 @@
 /**
  * Service Worker - بلي PWA
- * Cache-first strategy for full offline support
+ * Network-first for app code, cache-first for static assets.
+ * This prevents an installed PWA from running stale JavaScript for days.
  */
 
-const CACHE_NAME = 'baly-v8.0.0';
+const CACHE_NAME = 'baly-v9.0.0';
 
-const ASSETS_TO_CACHE = [
+const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './assets/styles/main.css',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
+];
+
+const APP_FILES = [
   './src/db/database.js',
   './src/utils/formatter.js',
   './src/utils/calculator.js',
@@ -27,16 +31,20 @@ const ASSETS_TO_CACHE = [
   './src/app.js',
 ];
 
-// Install: cache all assets
+const isAppCode = (url) =>
+  url.pathname.endsWith('.js') ||
+  url.pathname.endsWith('.mjs') ||
+  url.pathname.endsWith('.css') ||
+  url.pathname.endsWith('.html');
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .then((cache) => cache.addAll([...STATIC_ASSETS, ...APP_FILES]))
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -51,36 +59,43 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: cache-first with network fallback
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Ignore cross-origin requests (e.g. Firebase)
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((cached) => {
-        if (cached) return cached;
+  // Always prefer the newest application code when online.
+  if (isAppCode(url) || event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.mode === 'navigate') return caches.match('./index.html');
+          return Response.error();
+        }))
+    );
+    return;
+  }
 
-        return fetch(event.request)
-          .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, responseClone));
-            return response;
-          })
-          .catch(() => {
-            // Return offline page for navigation
-            if (event.request.mode === 'navigate') {
-              return caches.match('./index.html');
-            }
-          });
-      })
+  // Static images/icons: cache-first for fast loading.
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((response) => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      });
+    })
   );
 });
