@@ -22,10 +22,22 @@
   <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="./assets/styles/main.css?v=9.0.2">
+  <link rel="stylesheet" href="./assets/styles/main.css?v=9.0.3">
 </head>
 
 <body>
+<script>
+  // Nuclear option to force clear old Service Workers
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for(let registration of registrations) {
+        registration.unregister().then(() => {
+          console.log('Unregistered SW to force update');
+        });
+      }
+    });
+  }
+</script>
 <div id="app">
 
   <!-- ════════════════════════════════════════
@@ -368,7 +380,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v7.0.0 — المحفظة الذكية الشاملة 🏦</div>
+              <div class="settings-subtitle">بلي v9.0.3 — حل جذري للكاش 🚀</div>
             </div>
           </div>
         </div>
@@ -968,6 +980,6 @@
 </div><!-- /app -->
 
 <!-- JavaScript بـ ES Modules -->
-<script type="module" src="./src/app.js?v=9.0.2"></script>
+<script type="module" src="./src/app.js?v=9.0.3"></script>
 </body>
 </html>
