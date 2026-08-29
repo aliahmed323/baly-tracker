@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, push, remove, update } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, push, remove, update, goOnline, goOffline } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCIVtRcMXG1fvsJycs1nvgyNrc2kkEjgKQ",
@@ -14,6 +14,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+// إصلاح مشكلة انقطاع الاتصال عند ترك التطبيق في الخلفية لفترة طويلة (PWAs)
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    goOnline(db);
+  } else {
+    goOffline(db);
+  }
+});
 
 function toArray(snapshot) {
   const data = snapshot.val();

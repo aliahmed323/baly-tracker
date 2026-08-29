@@ -1,10 +1,10 @@
 /**
- * Service Worker - بلي PWA
+ * Service Worker - Baly PWA
  * Network-first for app code, cache-first for static assets.
  * This prevents an installed PWA from running stale JavaScript for days.
  */
 
-const CACHE_NAME = 'baly-v9.0.0';
+const CACHE_NAME = 'baly-v9.0.1';
 
 const STATIC_ASSETS = [
   './',
