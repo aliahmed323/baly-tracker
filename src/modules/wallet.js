@@ -162,59 +162,39 @@ export const Wallet = {
   // ── الإحصائيات والأرصدة الكاملة ────────────────────
 
   async getStats() {
-    const [taxiStats, envelopes, txs, latestDailyBalance, allBalySnaps, allTransfers, cashAdj, zainAdj] = await Promise.all([
+    const [taxiStats, envelopes, txs, allBalySnaps, allTransfers, cashAdj, zainAdj, zainTxs] = await Promise.all([
       Reports.getAllTimeStats(),
       this.getEnvelopes(),
       Database.getAllWalletTransactions(),
-      DailyBalance.getLatest(),
       BalyBalance.getAll(),
       Database.getAllTransfers(),
       Settings.get(KEYS.CASH_ADJUST),
-      Settings.get(KEYS.ZAIN_ADJUST)
+      Settings.get(KEYS.ZAIN_ADJUST),
+      Database.getAllZainTransactions()
     ]);
 
     const allTransfersSum = allTransfers.reduce((s, t) => s + (t.amount || 0), 0);
-
-    // ── صافي الأرباح الحقيقي ──────────────────────────────
     const adjustedNetProfit = (taxiStats.netProfit || 0);
-
-    // ── النقد بيدك ────────────────────────────────────────
     const cashInHand = (taxiStats.cashInHand || 0) + (cashAdj || 0);
 
-    // ── رصيد بلي ──────────────────────────────────────────
-    // الأولوية: لقطة الصباح اليومية > لقطة baly_snapshots القديمة > الحساب التلقائي
-    let balyBalance;
-    if (latestDailyBalance) {
-      balyBalance = latestDailyBalance.balyBalance || 0;
-    } else {
-      const latestBalySnap = allBalySnaps.length > 0
-        ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0]
-        : null;
-      balyBalance = latestBalySnap !== null
-        ? (latestBalySnap.balance || 0)
-        : ((taxiStats.appBalance || 0) + allTransfersSum);
-    }
+    // ── رصيد بلي ──
+    const latestBalySnap = allBalySnaps.length > 0
+      ? allBalySnaps.sort((a, b) => b.timestamp - a.timestamp)[0]
+      : null;
+    const balyBalance = latestBalySnap !== null
+      ? (latestBalySnap.balance || 0)
+      : ((taxiStats.appBalance || 0) + allTransfersSum);
 
-    // ── رصيد زين كاش ──────────────────────────────────────
-    // الأولوية: لقطة الصباح اليومية > الحساب التلقائي القديم
-    let zainCashBalance;
-    if (latestDailyBalance) {
-      // استخدم رصيد الصباح + المعاملات التي حدثت بعده
-      const zainTxs = await Database.getAllZainTransactions();
-      const baseDate = latestDailyBalance.date;
-      const txsAfter = zainTxs.filter(tx => (tx.date || '') >= baseDate);
-      const txSum = txsAfter.reduce((s, tx) => {
-        if (tx.type === 'credit') return s + (tx.amount || 0);
-        if (tx.type === 'debit')  return s - (tx.amount || 0);
-        return s;
-      }, 0);
-      zainCashBalance = (latestDailyBalance.zainCashBalance || 0) + txSum;
-    } else {
-      const baseZainCash = adjustedNetProfit - (taxiStats.cashInHand || 0) - balyBalance;
-      zainCashBalance = baseZainCash + (zainAdj || 0);
-    }
+    // ── رصيد زين كاش ──
+    const baseZainCash = adjustedNetProfit - (taxiStats.cashInHand || 0) - balyBalance;
+    const txSum = zainTxs.reduce((s, tx) => {
+      if (tx.type === 'credit') return s + (tx.amount || 0);
+      if (tx.type === 'debit')  return s - (tx.amount || 0);
+      return s;
+    }, 0);
+    const zainCashBalance = baseZainCash + (zainAdj || 0) + txSum;
 
-    // ── صناديق الأموال ─────────────────────────────────────
+    // ── صناديق الأموال ──
     const totalInEnvelopes = envelopes.reduce((s, e) => s + (e.balance || 0), 0);
     const totalWalletExpenses = txs.filter(t => t.type === 'envelope_expense').reduce((s, t) => s + t.amount, 0);
     const currentPhysicalCash = cashInHand - totalWalletExpenses;
@@ -233,12 +213,10 @@ export const Wallet = {
       totalTaxiCash:      adjustedNetProfit,
       totalExpenses:      taxiStats.totalExpenses || 0,
       totalTransfers:     allTransfersSum,
-      latestDailyBalance,
-      hasBalySnapshot:    latestDailyBalance !== null,
+      latestDailyBalance: null,
+      hasBalySnapshot:    latestBalySnap !== null,
     };
   },
-
-  // ── إدارة مصاريف المنزل التفصيلية ──────────────
 
   async getHomeExpenses(year, month) {
     const monthKey = `${year}-${String(month).padStart(2, '0')}`;

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, push, remove, update, goOnline, goOffline } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, push, remove, update, goOnline, goOffline, onValue } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCIVtRcMXG1fvsJycs1nvgyNrc2kkEjgKQ",
@@ -24,6 +24,21 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+
+const CACHE = {};
+function initSync(path) {
+  CACHE[path] = [];
+  onValue(ref(db, path), snap => {
+    CACHE[path] = toArray(snap);
+  });
+}
+function initSyncObject(path) {
+  CACHE[path] = {};
+  onValue(ref(db, path), snap => {
+    CACHE[path] = snap.val() || {};
+  });
+}
+
 function toArray(snapshot) {
   const data = snapshot.val();
   if (!data) return [];
@@ -33,188 +48,165 @@ function toArray(snapshot) {
 export const Database = {
   async init() {
     console.log('🔥 Firebase Realtime Database Initialized!');
+    initSync('trips');
+    initSync('expenses');
+    initSync('transfers');
+    initSyncObject('settings');
+    initSync('envelopes');
+    initSync('wallet_transactions');
+    initSync('home_expenses');
+    initSync('fuel_topups');
+    initSync('daily_km');
+    initSync('company_bonuses');
+    initSync('baly_snapshots');
+    initSync('daily_balances');
+    initSync('zain_transactions');
+
   },
 
   // ── TRIPS ──────────────────────────────────────
   async addTrip(data) {
     const newRef = push(ref(db, 'trips'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getTrip(id) {
-    const snap = await get(child(ref(db), `trips/${id}`));
+  async getTrip(id) { const t = (CACHE['trips']||[]).find(x=>x.id===id); return t || null; }`));
     return snap.val() ? { id, ...snap.val() } : null;
   },
   async getTripsByDate(dateKey) {
     const all = await this.getAllTrips();
     return all.filter(t => t.date === dateKey);
   },
-  async getAllTrips() {
-    const snap = await get(ref(db, 'trips'));
-    return toArray(snap);
-  },
+  async getAllTrips() { return CACHE['trips'] || []; },
   async updateTrip(trip) {
     const { id, ...data } = trip;
-    await update(ref(db, `trips/${id}`), data);
+    update(ref(db, `trips/${id}`), data);
     return trip;
   },
   async deleteTrip(id) {
-    await remove(ref(db, `trips/${id}`));
+    remove(ref(db, `trips/${id}`));
   },
 
   // ── EXPENSES ───────────────────────────────────
   async addExpense(data) {
     const newRef = push(ref(db, 'expenses'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
   async getExpensesByDate(dateKey) {
     const all = await this.getAllExpenses();
     return all.filter(e => e.date === dateKey);
   },
-  async getAllExpenses() {
-    const snap = await get(ref(db, 'expenses'));
-    return toArray(snap);
-  },
+  async getAllExpenses() { return CACHE['expenses'] || []; },
   async deleteExpense(id) {
-    await remove(ref(db, `expenses/${id}`));
+    remove(ref(db, `expenses/${id}`));
   },
 
   // ── TRANSFERS (زين كاش القديم) ─────────────────
   async addTransfer(data) {
     const newRef = push(ref(db, 'transfers'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
   async getTransfersByDate(dateKey) {
     const all = await this.getAllTransfers();
     return all.filter(t => t.date === dateKey);
   },
-  async getAllTransfers() {
-    const snap = await get(ref(db, 'transfers'));
-    return toArray(snap);
-  },
+  async getAllTransfers() { return CACHE['transfers'] || []; },
   async deleteTransfer(id) {
-    await remove(ref(db, `transfers/${id}`));
+    remove(ref(db, `transfers/${id}`));
   },
 
   // ── SETTINGS ───────────────────────────────────
-  async getSetting(key) {
-    const snap = await get(child(ref(db), `settings/${key}`));
+  async getSetting(key) { return (CACHE['settings'] || {})[key]; }`));
     return snap.val();
   },
-  async setSetting(key, value) {
-    await set(ref(db, `settings/${key}`), value);
+  async setSetting(key, value) { set(ref(db, `settings/${key}`), value); }`), value);
   },
 
   // ── WALLET (ENVELOPES & TRANSACTIONS) ──────────
-  async getAllEnvelopes() {
-    const snap = await get(ref(db, 'envelopes'));
-    return toArray(snap);
-  },
+  async getAllEnvelopes() { return CACHE['envelopes'] || []; },
   async putEnvelope(env) {
-    await set(ref(db, `envelopes/${env.id}`), env);
+    set(ref(db, `envelopes/${env.id}`), env);
   },
   async deleteEnvelope(id) {
-    await remove(ref(db, `envelopes/${id}`));
+    remove(ref(db, `envelopes/${id}`));
   },
   async addWalletTransaction(tx) {
     const newRef = push(ref(db, 'wallet_transactions'));
-    await set(newRef, tx);
+    set(newRef, tx);
     return { ...tx, id: newRef.key };
   },
-  async getAllWalletTransactions() {
-    const snap = await get(ref(db, 'wallet_transactions'));
-    return toArray(snap);
-  },
+  async getAllWalletTransactions() { return CACHE['wallet_transactions'] || []; },
   async deleteWalletTransaction(id) {
-    await remove(ref(db, `wallet_transactions/${id}`));
+    remove(ref(db, `wallet_transactions/${id}`));
   },
 
   // ── HOME EXPENSES ──────────────────────────────
   async addHomeExpense(expense) {
     const newRef = push(ref(db, 'home_expenses'));
-    await set(newRef, expense);
+    set(newRef, expense);
     return { ...expense, id: newRef.key };
   },
-  async getHomeExpensesByMonth(monthKey) {
-    const snap = await get(ref(db, 'home_expenses'));
-    const all = toArray(snap);
-    return all.filter(e => e.month === monthKey);
-  },
+  async getHomeExpensesByMonth(monthKey) { return (CACHE['home_expenses']||[]).filter(e => e.month === monthKey); },
   async deleteHomeExpense(id) {
-    await remove(ref(db, `home_expenses/${id}`));
+    remove(ref(db, `home_expenses/${id}`));
   },
 
   // ── FUEL TOPUPS ────────────────────────────────
   async addFuelTopup(data) {
     const newRef = push(ref(db, 'fuel_topups'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getAllFuelTopups() {
-    const snap = await get(ref(db, 'fuel_topups'));
-    return toArray(snap);
-  },
+  async getAllFuelTopups() { return CACHE['fuel_topups'] || []; },
   async deleteFuelTopup(id) {
-    await remove(ref(db, `fuel_topups/${id}`));
+    remove(ref(db, `fuel_topups/${id}`));
   },
 
   // ── DAILY KM RECORDS ───────────────────────────
   async addDailyKm(data) {
     const newRef = push(ref(db, 'daily_km'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getAllDailyKm() {
-    const snap = await get(ref(db, 'daily_km'));
-    return toArray(snap);
-  },
+  async getAllDailyKm() { return CACHE['daily_km'] || []; },
   async deleteDailyKm(id) {
-    await remove(ref(db, `daily_km/${id}`));
+    remove(ref(db, `daily_km/${id}`));
   },
 
   // ── COMPANY BONUSES ────────────────────────────
   async addCompanyBonus(data) {
     const newRef = push(ref(db, 'company_bonuses'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getAllCompanyBonuses() {
-    const snap = await get(ref(db, 'company_bonuses'));
-    return toArray(snap);
-  },
+  async getAllCompanyBonuses() { return CACHE['company_bonuses'] || []; },
   async deleteCompanyBonus(id) {
-    await remove(ref(db, `company_bonuses/${id}`));
+    remove(ref(db, `company_bonuses/${id}`));
   },
 
   // ── BALY BALANCE SNAPSHOTS (القديمة - للتوافق) ─
   async addBalySnapshot(data) {
     const newRef = push(ref(db, 'baly_snapshots'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getAllBalySnapshots() {
-    const snap = await get(ref(db, 'baly_snapshots'));
-    return toArray(snap);
-  },
+  async getAllBalySnapshots() { return CACHE['baly_snapshots'] || []; },
   async deleteBalySnapshot(id) {
-    await remove(ref(db, `baly_snapshots/${id}`));
+    remove(ref(db, `baly_snapshots/${id}`));
   },
 
   // ── DAILY BALANCES (لقطة الصباح الجديدة) ───────
   // كل يوم نسجّل: رصيد بلي + رصيد زين كاش الفعليين من التطبيق
   async addDailyBalance(data) {
     const newRef = push(ref(db, 'daily_balances'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getAllDailyBalances() {
-    const snap = await get(ref(db, 'daily_balances'));
-    return toArray(snap);
-  },
+  async getAllDailyBalances() { return CACHE['daily_balances'] || []; },
   async deleteDailyBalance(id) {
-    await remove(ref(db, `daily_balances/${id}`));
+    remove(ref(db, `daily_balances/${id}`));
   },
   async getDailyBalanceByDate(dateKey) {
     const all = await this.getAllDailyBalances();
@@ -225,14 +217,11 @@ export const Database = {
   // type: 'credit' (إيداع/مكافأة) | 'debit' (مصروف من زين)
   async addZainTransaction(data) {
     const newRef = push(ref(db, 'zain_transactions'));
-    await set(newRef, data);
+    set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getAllZainTransactions() {
-    const snap = await get(ref(db, 'zain_transactions'));
-    return toArray(snap);
-  },
+  async getAllZainTransactions() { return CACHE['zain_transactions'] || []; },
   async deleteZainTransaction(id) {
-    await remove(ref(db, `zain_transactions/${id}`));
+    remove(ref(db, `zain_transactions/${id}`));
   },
 };

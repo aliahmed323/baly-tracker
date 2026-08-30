@@ -1849,7 +1849,7 @@ async function init() {
   }
 
   // فحص بوابة الصباح بعد لحظة
-  setTimeout(() => checkMorningGateway(), 1200);
+  
 }
 
 
@@ -1951,7 +1951,7 @@ window.App = {
   // بوابة الصباح
   saveMorningGateway: () => saveMorningGateway(),
   skipMorningGateway: () => skipMorningGateway(),
-  openMorningGateway: () => checkMorningGateway(),
+  
 
   // محفظة زين كاش
   openZainWallet:      () => openZainWallet(),
