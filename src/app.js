@@ -167,7 +167,7 @@ async function commitTrip() {
   await refreshHomeStats();
   if (S.screen === 'today') renderToday();
 
-  showTripToast(amount + extra + bonus, paymentType);
+  showTripToast(amount + extra + bonus, S.paymentType);
 }
 
 // تغيير نوع الدفع (كاش / رصيد بلي)

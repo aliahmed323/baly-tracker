@@ -4,7 +4,7 @@
  * This prevents an installed PWA from running stale JavaScript for days.
  */
 
-const CACHE_NAME = 'baly-v9.0.4';
+const CACHE_NAME = 'baly-v9.0.5';
 
 const STATIC_ASSETS = [
   './',
@@ -28,6 +28,8 @@ const APP_FILES = [
   './src/modules/fuelWallet.js',
   './src/modules/bonuses.js',
   './src/modules/balyBalance.js',
+  './src/modules/dailyBalance.js',
+  './src/modules/zainWallet.js',
   './src/app.js',
 ];
 

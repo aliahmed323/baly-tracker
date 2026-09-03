@@ -26,18 +26,6 @@
 </head>
 
 <body>
-<script>
-  // Nuclear option to force clear old Service Workers
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for(let registration of registrations) {
-        registration.unregister().then(() => {
-          console.log('Unregistered SW to force update');
-        });
-      }
-    });
-  }
-</script>
 <div id="app">
 
   <!-- ════════════════════════════════════════
@@ -380,7 +368,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v9.0.4 — حل جذري للكاش 🚀</div>
+              <div class="settings-subtitle">بلي v9.0.5 — حل جذري للكاش 🚀</div>
             </div>
           </div>
         </div>
