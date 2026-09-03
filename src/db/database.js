@@ -70,8 +70,9 @@ export const Database = {
     set(newRef, data);
     return { ...data, id: newRef.key };
   },
-  async getTrip(id) { const t = (CACHE['trips']||[]).find(x=>x.id===id); return t || null; }`));
-    return snap.val() ? { id, ...snap.val() } : null;
+  async getTrip(id) {
+    const t = (CACHE['trips'] || []).find(x => x.id === id);
+    return t || null;
   },
   async getTripsByDate(dateKey) {
     const all = await this.getAllTrips();
@@ -118,10 +119,11 @@ export const Database = {
   },
 
   // ── SETTINGS ───────────────────────────────────
-  async getSetting(key) { return (CACHE['settings'] || {})[key]; }`));
-    return snap.val();
+  async getSetting(key) {
+    return (CACHE['settings'] || {})[key];
   },
-  async setSetting(key, value) { set(ref(db, `settings/${key}`), value); }`), value);
+  async setSetting(key, value) {
+    set(ref(db, `settings/${key}`), value);
   },
 
   // ── WALLET (ENVELOPES & TRANSACTIONS) ──────────

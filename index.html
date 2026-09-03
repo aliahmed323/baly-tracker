@@ -26,6 +26,16 @@
 </head>
 
 <body>
+<script>
+// Force clear stale Service Worker cache
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+    if (regs.length > 0) window.location.reload();
+  });
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+}
+</script>
 <div id="app">
 
   <!-- ════════════════════════════════════════
@@ -368,7 +378,7 @@
             <div class="settings-icon">ℹ️</div>
             <div class="settings-info">
               <div class="settings-title">إصدار التطبيق</div>
-              <div class="settings-subtitle">بلي v9.0.5 — حل جذري للكاش 🚀</div>
+              <div class="settings-subtitle">بلي v9.1.0 — حل جذري للكاش 🚀</div>
             </div>
           </div>
         </div>
