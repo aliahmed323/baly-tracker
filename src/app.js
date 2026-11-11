@@ -430,7 +430,7 @@ function showTripToast(total, paymentType = 'cash') {
   if (toast) toast.classList.add('show');
 
   clearTimeout(S.toast);
-  S.toast = setTimeout(hideToast, 10000);
+  S.toast = setTimeout(hideToast, 3000);
 }
 
 function flashToast(text, amount) {
