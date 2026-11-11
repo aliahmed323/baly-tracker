@@ -4,7 +4,7 @@
  * This prevents an installed PWA from running stale JavaScript for days.
  */
 
-const CACHE_NAME = 'baly-v9.1.0';
+const CACHE_NAME = 'baly-v9.1.12';
 
 const STATIC_ASSETS = [
   './',
