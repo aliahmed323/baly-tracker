@@ -3,6 +3,11 @@
  * بلي · تتبع أرباح سائق التكسي
  */
 
+// مسح كاش Service Worker القديم فوراً عند التشغيل
+if ('caches' in window) {
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+}
+
 import { Database }              from './db/database.js';
 import { Trips }                 from './modules/trips.js';
 import { Expenses, CATEGORIES }  from './modules/expenses.js';
